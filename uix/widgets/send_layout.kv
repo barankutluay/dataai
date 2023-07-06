@@ -1,0 +1,27 @@
+<SendLayout@MDGridLayout+CommonElevationBehavior>:
+    size_hint_x: 1
+    adaptive_height: True
+    pos_hint: {"center_x": 0.5, "bottom": 0.0}
+    padding: dp(10), dp(10)
+    spacing: dp(10)
+    cols: 2
+    md_bg_color: app.theme_cls.primary_color
+    elevation: 2
+    MDTextField:
+        id: text_field
+        multiline: True
+        mode: "fill"
+        hint_text: "Send message"
+        max_height: dp(125)
+        md_bg_color: app.theme_cls.primary_color
+        fill_color_normal: (1, 1, 1, 1) if app.theme_cls.theme_style == "Light" else (18/255, 18/255, 18/255, 1)
+        fill_color_focus: (1, 1, 1, 1) if app.theme_cls.theme_style == "Light" else (18/255, 18/255, 18/255, 1)
+    MDFloatingActionButton:
+        icon: "send-circle"
+        elevation: 3
+        on_release: 
+            app.send_message()
+            app.show_response()
+
+
+SendLayout:

@@ -1,0 +1,50 @@
+#:import Clipboard kivy.core.clipboard.Clipboard
+
+<ContentNavigationDrawer@MDBoxLayout>:
+
+
+<Password@MDRelativeLayout>:
+
+            
+<ChatBubble>:
+    size_hint_x: 0.85
+    size_hint_y: None
+    height: chat_bubble_box.height
+    full_text: ""
+    pos_hint: {"right": 1}
+    canvas.before:
+        Color:
+            rgba: (0, 0, 0, 0.1) if app.theme_cls.theme_style == "Light" else (1, 1, 1, 0.1)
+        RoundedRectangle:
+            pos: self.pos
+            size: self.size
+            radius: [10,]
+
+    MDBoxLayout:
+        orientation: "horizontal"
+        size_hint_x: 1
+        padding: [dp(10), dp(0), dp(10), dp(0)] if root.btype=="m" else [dp(10), dp(0), dp(0), dp(0)]
+
+        MDRelativeLayout:
+            id: chat_bubble_box
+            size_hint_y: None
+            height: chat_bubble_text.texture_size[1] + dp(20)
+            MDLabel:
+                id: chat_bubble_text
+                size_hint_y: None
+                text: ""
+                halign: root.halign
+                theme_text_color: "Primary"
+                height: self.texture_size[1]
+                pos_hint: {'center_x': 0.5, 'center_y': 0.5}
+                # on_texture_size:
+                #     root.size_hint_x = chat_bubble_text.texture_size[0] / root.width
+
+        MDRelativeLayout:
+            size_hint_x: 0.35
+            MDIconButton:
+                icon: "content-copy" 
+                pos_hint: {'top': 1.0, 'right': 1.0}
+                icon_size: "12sp"
+                on_release:
+                    Clipboard.copy(root.ids.chat_bubble_text.text)

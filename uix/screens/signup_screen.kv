@@ -1,0 +1,103 @@
+<SignUpScreen@MDScreen>:
+    name: "signup"
+
+
+    MDBoxLayout:
+        orientation: "vertical"
+        size_hint: 1, .8
+        pos_hint: {"center_x": 0.5, "center_y": 0.5}
+        # md_bg_color: app.theme_cls.accent_color
+
+        MDRelativeLayout:
+            #md_bg_color: app.theme_cls.secondary_text_color
+            MDLabel:
+                text: "Signup"
+                font_style: "H3"
+                halign:"center"
+                pos_hint: {"center_y": 1}
+
+
+            MDTextField:
+                id: signup_username
+                pos_hint: {"center_x":0.5,"center_y":0.80}
+                size_hint_x: 0.8
+                text: ""
+                hint_text: "Username"
+                helper_text: "Required"
+                helper_text_mode: "on_error"
+                error_color: app.theme_cls.secondary_text_color
+                icon_right: "account"
+                icon_right_color: app.theme_cls.primary_color
+                required: True
+                mode: "fill"
+                on_text:
+                    app.input_limit(self, 30, "u")
+
+
+            MDTextField:
+                id: signup_email
+                pos_hint: {"center_x":0.5,"center_y":0.60}
+                size_hint_x: 0.8
+                text: ""
+                hint_text: "Email"
+                helper_text: "Required"
+                helper_text_mode: "on_error"
+                error_color: app.theme_cls.secondary_text_color
+                validator: "email"
+                icon_right: "email"
+                icon_right_color: app.theme_cls.primary_color
+                required: True
+                mode: "fill"
+                on_text:
+                    app.input_limit(self, 50, "e")
+
+
+            Password:
+                size_hint_x: 0.8
+                pos_hint: {"center_x":0.5,"center_y":0.40}
+                size_hint_y: None
+                height: signup_password.height
+                MDTextField:
+                    id: signup_password
+                    hint_text: "Password"
+                    text: ""
+                    password: True
+                    helper_text:"Required"
+                    helper_text_mode:  "on_error"
+                    error_color: app.theme_cls.secondary_text_color
+                    mode: "fill"
+                    required: True
+                    on_text: 
+                        app.input_limit(self, 20, "p")
+                MDIconButton:
+                    icon: "eye-off"
+                    pos_hint: {"center_y": .5}
+                    pos: signup_password.width - self.width + dp(4),0
+                    theme_text_color: "Hint"
+                    on_release:
+                        self.icon = "eye" if self.icon == "eye-off" else "eye-off"
+                        signup_password.password = False if signup_password.password is True else True
+
+
+            MDFillRoundFlatIconButton:
+                id: signup_button
+                icon: "account-plus"
+                text: "Signup"
+                font_size: sp(16)
+                size_hint_x: 0.4
+                size_hint_y: 0.1
+                pos_hint: {"center_x": 0.5,"center_y": 0.20}
+                on_release: app.sign_up()
+
+            MDTextButton:
+                id: login_button
+                text: "Already have an account? Click here to login"
+                font_size: sp(12)
+                size_hint_x: None
+                pos_hint: {"center_x": 0.5,"center_y": 0.05}
+                on_release: 
+                    app.switch_screen("login")
+                    app.clear_text(root.ids.signup_username, root.ids.signup_email, root.ids.signup_password)
+
+
+SignUpScreen:

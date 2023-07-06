@@ -1,0 +1,19 @@
+<ChatLayout@MDBoxLayout>:
+    size_hint: 1, 1
+    id: chat_layout
+    cols: 1
+    pos_hint: {'center_x': 0.5,'center_y': 0.5}
+    md_bg_color: (1, 1, 1, 1) if app.theme_cls.theme_style == "Light" else (18/255, 18/255, 18/255, 1)
+    chat_id: 0
+    MDScrollView:
+        do_scroll_x: False
+        do_scroll_y: True
+        scroll_y: 1
+        MDBoxLayout:
+            orientation: "vertical"
+            adaptive_height: True
+            spacing: dp(20)
+            padding: dp(10), dp(90), dp(10), dp(100)
+
+
+ChatLayout:

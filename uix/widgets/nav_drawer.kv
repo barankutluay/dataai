@@ -1,0 +1,52 @@
+<NavDrawer@MDNavigationLayout>:
+    MDScreenManager:
+        MDScreen:
+            MDTopAppBar:
+                title: "My App"
+                elevation: 2
+                pos_hint: {"top": 1}
+                left_action_items:
+                    [["menu", lambda x: nav_drawer.set_state("open")]]
+                right_action_items:
+                    [["camera", lambda x: app.switch_screen("camera")],["pencil-box", lambda x: app.add_new_chat()]]
+    MDNavigationDrawer:
+        id: nav_drawer
+        radius: (0, 16, 16, 0)
+        MDRelativeLayout:
+
+            MDRelativeLayout:
+                pos_hint: {'center_x': 0.5,'bottom': 0.0}
+                size_hint: 1, 0.1
+                MDBoxLayout:
+                    orientation: "horizontal"
+                    size_hint_x: 1
+                    MDLabel:
+                        id: user_label
+                        size_hint_x: 0.75
+                        halign: "left"
+                    MDBoxLayout:
+                        size_hint_x: 0.25
+                        MDIconButton:
+                            id: settings_button
+                            elevation: 3
+                            icon: "cog"
+                            md_bg_color: app.theme_cls.primary_color
+                            theme_text_color: "Custom"
+                            text_color: "white"
+                            pos_hint: {'right': 1.0,'center_y': 0.5}
+                            icon_size: sp(32)
+                            # on_release: app.menu.open()
+
+            MDList:
+                id: chat_list
+                pos_hint: {'center_x': 0.5,'center_y': 0.55}
+                size_hint: 1, 0.9
+                OneLineAvatarIconListItem:
+                    id: item_0
+                    _id_: 0
+                    text: "New Chat"
+                    _txt_left_pad: "8dp"
+                    on_release: app.switch_session(self)
+
+
+NavDrawer:

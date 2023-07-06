@@ -1,0 +1,25 @@
+<CameraScreen@MDScreen>:
+    name: "camera"
+    MDRelativeLayout:
+        size_hint: 1, 1
+        pos_hint: {'center_x': 0.5,'center_y': 0.5}
+        Camera:
+            id: camera
+            resolution: (900, 900)
+            play: True
+            pos_hint: {'center_x': 0.5,'center_y': 0.5}
+        MDRelativeLayout:
+            pos_hint: {'center_x': 0.5,'center_y': 0.1}
+            size_hint: 1.0, 0.2
+            md_bg_color: [0, 0, 0, 0.1]
+            zorder: 1
+            MDIconButton:
+                id: capture
+                zorder: 1
+                icon: "circle-slice-8"
+                pos_hint: {'center_x': 0.5,'center_y': 0.5}
+                icon_size: sp(80)
+                theme_icon_color: "Custom"
+                icon_color: [1, 1, 1, 1]
+
+CameraScreen:

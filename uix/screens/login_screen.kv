@@ -1,0 +1,85 @@
+<LoginScreen@MDScreen>:
+    name: "login"
+
+
+    MDBoxLayout:
+        orientation: "vertical"
+        size_hint: 1, .8
+        pos_hint: {"center_x": 0.5, "center_y": 0.5}
+        # md_bg_color: app.theme_cls.accent_color
+
+        MDRelativeLayout:
+            #md_bg_color: app.theme_cls.secondary_text_color
+            MDLabel:
+                text:"Login"
+                font_style:"H3"
+                halign:"center"
+                pos_hint: {"center_y": 1}
+
+            MDTextField:
+                id:login_email
+                pos_hint: {"center_x":0.5,"center_y":0.70}
+                size_hint_x: 0.8
+                hint_text: "Email"
+                validator: "email"
+                helper_text:"Required"
+                helper_text_mode:  "on_error"
+                error_color: app.theme_cls.secondary_text_color
+                icon_right: "email"
+                icon_right_color: app.theme_cls.primary_color
+                required: True
+                mode: "fill"
+                on_text:
+                    app.input_limit(self, 30, "e")
+
+
+            Password:
+                size_hint_x: 0.8
+                pos_hint: {"center_x":0.5,"center_y":0.5}
+                size_hint_y: None
+                height: login_password.height
+                MDTextField:
+                    id: login_password
+                    hint_text: "Password"
+                    text: ""
+                    password: True
+                    helper_text:"Required"
+                    helper_text_mode:  "on_error"
+                    error_color: app.theme_cls.secondary_text_color
+                    mode: "fill"
+                    required: True
+                    on_text: 
+                        app.input_limit(self, 20, "p")
+                MDIconButton:
+                    icon: "eye-off"
+                    pos_hint: {"center_y": .5}
+                    pos: login_password.width - self.width + dp(4),0
+                    theme_text_color: "Hint"
+                    on_release:
+                        self.icon = "eye" if self.icon == "eye-off" else "eye-off"
+                        login_password.password = False if login_password.password is True else True
+
+
+            MDFillRoundFlatIconButton:
+                id: login_button
+                icon: "account-arrow-right"
+                text: "Login"
+                font_size: sp(16)
+                size_hint_x: 0.4
+                size_hint_y: 0.1
+                pos_hint: {"center_x": 0.5,"center_y": 0.20}
+                on_release: app.login()
+
+
+            MDTextButton:
+                id: signup_button
+                text: "Don't have an account yet? Click here to signup"
+                font_size: sp(12)
+                size_hint_x: None
+                pos_hint: {"center_x": 0.5,"center_y": 0.05}
+                on_release:
+                    app.switch_screen(self, "signup")
+                    app.clear_text(self, root.ids.login_email, root.ids.login_password)
+
+
+LoginScreen:
