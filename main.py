@@ -136,7 +136,6 @@ class MainApp(MDApp):
     def on_start(self):
         self.load_signup_screen()
         self.load_home_screen()
-        # self.sm.current = "home"
         self.chat_layouts.append(self.chat_layout)
         if "idToken" in self.store:
             token = self.store["idToken"]["token"]
@@ -735,7 +734,6 @@ class MainApp(MDApp):
 # TODO: Boş mesaj gönderince kendisi prompt oluşturuyor, engellenmeli
 # TODO: Mesaj gönderdiğinde yazıyor gibi bir animasyon gelmeli, bu animasyon ekranda belirdiğinde eş zamanlı olarak
 #  response üretilmeli, daha sonra animasyon kaybolup response gösterilmeli
-# TODO: Auto-login yapılmalı
 
 
 if __name__ == "__main__":
