@@ -5,6 +5,7 @@ import firebase_admin
 import kivy.properties as kvprops
 import openai
 import pyrebase
+from kivy.storage.jsonstore import JsonStore
 from firebase_admin import auth, credentials
 from kivy.lang import Builder
 from kivy.metrics import dp
@@ -96,6 +97,7 @@ class MainApp(MDApp):
         self.title = ""
         self.chat_layouts = []
         self.chat_sessions = []
+        self.store = JsonStore('credentials.json')  # JsonStore for storing credentials
 
     def build(self):
         self.theme_cls.theme_style = "Light"
@@ -136,6 +138,15 @@ class MainApp(MDApp):
         self.load_home_screen()
         # self.sm.current = "home"
         self.chat_layouts.append(self.chat_layout)
+        if "idToken" in self.store:
+            token = self.store["idToken"]["token"]
+            print(token)
+            login_email = auth.verify_id_token(token)["email"]
+            login_password = db.child("users").child(self.replace_str(login_email, "to_db"))\
+                               .child("password").get().val()
+            self.login_screen.ids.login_email.text = login_email
+            self.login_screen.ids.login_password.text = login_password
+            self.login(auto_login=True)
 
     def on_stop(self):
         return super().on_stop()
@@ -163,7 +174,7 @@ class MainApp(MDApp):
         if _type in replacement_chars:
             obj.text = "".join(c for c in obj.text if c not in replacement_chars[_type])
 
-    def login(self):
+    def login(self, auto_login=False):
         login_email = self.login_screen.ids.login_email.text
         login_password = self.login_screen.ids.login_password.text
 
@@ -179,14 +190,18 @@ class MainApp(MDApp):
                 )
                 self.login_check = True
                 self.switch_screen("home")
-                self.dialog_open(
-                    "Logged In",
-                    f'Successfully logged in as "{db_username}".',
-                    "OK",
-                )
+                if not auto_login:
+                    self.dialog_open(
+                        "Logged In",
+                        f'Successfully logged in as "{db_username}".',
+                        "OK",
+                    )
 
                 self.get_chat_log()
+
                 self.nav_drawer.ids.user_label.text = self.user["email"]
+
+                self.store.put("idToken", token=self.user["idToken"])
             else:
                 raise Exception("Invalid email or password")
         except Exception as e:
