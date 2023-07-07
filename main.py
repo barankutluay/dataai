@@ -718,6 +718,10 @@ class MainApp(MDApp):
 
 
 # TODO: Boş mesaj gönderince kendisi prompt oluşturuyor, engellenmeli
+# TODO: Mesaj gönderdiğinde yazıyor gibi bir animasyon gelmeli, bu animasyon ekranda belirdiğinde eş zamanlı olarak
+#  response üretilmeli, daha sonra animasyon kaybolup response gösterilmeli
+# TODO: Auto-login yapılmalı
+
 
 if __name__ == "__main__":
     app = MainApp()
