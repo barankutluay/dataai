@@ -1,3 +1,4 @@
+import logging
 import os
 
 import dotenv
@@ -52,6 +53,8 @@ config = {
     "databaseURL": DATABASE_URL,
     "appId": APP_ID,
 }
+
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 cred = credentials.Certificate(GOOGLE_APPLICATION_CREDENTIALS)
 firebase_admin.initialize_app(cred)
@@ -201,6 +204,7 @@ class MainApp(MDApp):
                 self.nav_drawer.ids.user_label.text = self.user["email"]
 
                 self.store.put("idToken", token=self.user["idToken"])
+                self.user["refreshToken"] = auth_firebase.refresh(self.user["refreshToken"])["refreshToken"]
             else:
                 raise Exception("Invalid email or password")
         except Exception as e:
@@ -521,7 +525,7 @@ class MainApp(MDApp):
                         text="New Chat",
                         _txt_left_pad=dp(8),
                         on_release=self.switch_session,
-                        _id_=self.chat_count + 1,
+                        fake_id=self.chat_count + 1,
                     )
                     md_list.add_widget(list_item)
                     self.chat_count += 1
@@ -578,7 +582,7 @@ class MainApp(MDApp):
                         text="New Chat",
                         _txt_left_pad=dp(8),
                         on_release=self.switch_session,
-                        _id_=self.chat_count + 1,
+                        fake_id=self.chat_count + 1,
                     )
                     md_list.add_widget(list_item)
                     self.chat_count += 1
@@ -603,7 +607,7 @@ class MainApp(MDApp):
         )
         chats.remove()
 
-        chat_layout = self.chat_layouts[list_item._id_]
+        chat_layout = self.chat_layouts[list_item.fake_id]
         self.title = list_item.text
 
         chat_layout.children[0].children[0].clear_widgets()
@@ -613,8 +617,8 @@ class MainApp(MDApp):
     def send_message(self):
         text_field = self.send_layout.ids.text_field
         message_text = text_field.text.strip()
-
-        if message_text:
+        logging.debug(message_text)
+        if message_text != "":
             cb_parent = ChatBubble(pos_hint={"right": 1}, halign="right", btype="m")
             cb_relative = cb_parent.children[0]
             cb_relative.remove_widget(cb_relative.children[0])
@@ -622,10 +626,12 @@ class MainApp(MDApp):
             cb_label.text = message_text
             chat_children = self.chat_layout.children[0].children[0]
             chat_children.add_widget(cb_parent)
-
             self.cb_label = cb_label
-
-        self.clear_text(text_field)
+            self.clear_text(text_field)
+            self.show_response()
+        else:
+            self.dialog_open("Blank Prompt", "Input a valid prompt.", "Retry")
+            return
 
     def show_response(self):
         self.response = self.completion()
@@ -673,7 +679,7 @@ class MainApp(MDApp):
                 text="New Chat",
                 _txt_left_pad=dp(8),
                 on_release=self.switch_session,
-                _id_=self.chat_count + 1,
+                fake_id=self.chat_count + 1,
             )
             md_list.add_widget(list_item)
             self.chat_count += 1
@@ -731,7 +737,6 @@ class MainApp(MDApp):
             return replaced_str
 
 
-# TODO: Boş mesaj gönderince kendisi prompt oluşturuyor, engellenmeli
 # TODO: Mesaj gönderdiğinde yazıyor gibi bir animasyon gelmeli, bu animasyon ekranda belirdiğinde eş zamanlı olarak
 #  response üretilmeli, daha sonra animasyon kaybolup response gösterilmeli
 
