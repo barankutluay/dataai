@@ -617,7 +617,6 @@ class MainApp(MDApp):
     def send_message(self):
         text_field = self.send_layout.ids.text_field
         message_text = text_field.text.strip()
-        logging.debug(message_text)
         if message_text != "":
             cb_parent = ChatBubble(pos_hint={"right": 1}, halign="right", btype="m")
             cb_relative = cb_parent.children[0]
