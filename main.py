@@ -110,6 +110,10 @@ class MainApp(MDApp):
         return self.load_login_screen()
 
     def load_login_screen(self):
+        """
+        Loads login screen.
+        :return: MDScreenManager
+        """
         Builder.load_file("uix/widgets/custom_widgets.kv")
         self.login_screen = Builder.load_file("uix/screens/login_screen.kv")
         self.sm = MDScreenManager()
@@ -118,10 +122,18 @@ class MainApp(MDApp):
         return self.sm
 
     def load_signup_screen(self):
+        """
+        Loads sign up screen.
+        :return: None
+        """
         self.signup_screen = Builder.load_file("uix/screens/signup_screen.kv")
         self.sm.add_widget(self.signup_screen)
 
     def load_home_screen(self):
+        """
+        Loads home screen.
+        :return: None
+        """
         self.home_screen = Builder.load_file("uix/screens/home_screen.kv")
         self.nav_drawer = Builder.load_file("uix/widgets/nav_drawer.kv")
         self.chat_layout = Builder.load_file("uix/widgets/chat_layout.kv")
@@ -133,6 +145,10 @@ class MainApp(MDApp):
         self.sm.add_widget(self.home_screen)
 
     def load_camera_screen(self):
+        """
+        Loads camera screen.
+        :return: None
+        """
         self.camera_screen = Builder.load_file("uix/screens/camera_screen.kv")
         self.sm.add_widget(self.camera_screen)
 
@@ -155,17 +171,34 @@ class MainApp(MDApp):
 
     @staticmethod
     def clear_text(*fields):
+        """
+        Clears texts of given text fields.
+        :param fields:
+        :return: None
+        """
         for field in fields:
             field.text = ""
 
-    def switch_screen(self, screen_name):
+    def switch_screen(self, screen_name: str):
+        """
+        Switches to screen by given screen name.
+        :param screen_name:
+        :return: None
+        """
         if screen_name == "camera":
             self.load_camera_screen()
 
         self.sm.current = screen_name
 
     @staticmethod
-    def input_limit(obj, max_length, _type):
+    def input_limit(obj, max_length: int, _type: str):
+        """
+        Limits the inputs of login, password and username text fields.
+        :param obj:
+        :param max_length:
+        :param _type:
+        :return: None
+        """
         if len(obj.text) > max_length:
             obj.text = obj.text[:max_length]
         replacement_chars = {
@@ -177,6 +210,11 @@ class MainApp(MDApp):
             obj.text = "".join(c for c in obj.text if c not in replacement_chars[_type])
 
     def login(self, auto_login=False):
+        """
+        Perform login action.
+        :param auto_login:
+        :return: Any
+        """
         login_email = self.login_screen.ids.login_email.text
         login_password = self.login_screen.ids.login_password.text
 
@@ -215,6 +253,10 @@ class MainApp(MDApp):
             )
 
     def sign_up(self):
+        """
+        Perform sign up action.
+        :return: None
+        """
         signup_screen = self.signup_screen
         signup_username = signup_screen.ids.signup_username.text
         signup_email = signup_screen.ids.signup_email.text
@@ -260,13 +302,24 @@ class MainApp(MDApp):
                 )
 
     def create_dialog(self):
+        """
+        Create dialog window.
+        :return: None
+        """
         if not self.dialog:
             self.dialog_btn = MDRaisedButton(
                 text="", on_release=self.dialog_dismiss, elevation=2
             )
             self.dialog = MDDialog(buttons=[self.dialog_btn], elevation=2)
 
-    def dialog_open(self, title_text, dg_text, btn_text):
+    def dialog_open(self, title_text: str, dg_text: str, btn_text: str):
+        """
+        Opens the dialog window.
+        :param title_text:
+        :param dg_text:
+        :param btn_text:
+        :return: None
+        """
         self.create_dialog()
 
         self.dialog.title = title_text
@@ -276,19 +329,21 @@ class MainApp(MDApp):
         self.dialog.open()
 
     def dialog_dismiss(self, obj):
+        """
+        Dismisses the dialog window.
+        :param obj:
+        :return: None
+        """
         self.dialog.dismiss(obj)
 
     @staticmethod
-    def get_response(instructions, previous_questions_and_answers, new_question):
-        """Get a response from ChatCompletion
-
-        Args:
-            instructions: The instructions for the chatbot - this determines how it will behave
-            previous_questions_and_answers: Chat history
-            new_question: The new question to ask the bot
-
-        Returns:
-            The response text
+    def get_response(instructions: str, previous_questions_and_answers: list, new_question: str):
+        """
+        Creates a completion with given parameters and prompt.
+        :param instructions: Instructions that will be given to chatbot
+        :param previous_questions_and_answers:
+        :param new_question:
+        :return: str
         """
         messages = [
             {"role": "system", "content": instructions},
@@ -307,19 +362,15 @@ class MainApp(MDApp):
             frequency_penalty=FREQUENCY_PENALTY,
             presence_penalty=PRESENCE_PENALTY,
         )
-        return completion.choices[0].message.content
+        return str(completion.choices[0].message.content)
 
     @staticmethod
-    def get_moderation(question):
+    def get_moderation(question: str):
         """
-        Check the question is safe to ask the model
-
-        Parameters:
-            question (str): The question to check
-
-        Returns a list of errors if the question is not safe, otherwise returns None
+        Checks moderation of the given prompt.
+        :param question:
+        :return: Optional[list[str]]
         """
-
         errors = {
             "hate": "Content that expresses, incites, or promotes hate based on race, gender, ethnicity, religion, "
                     "nationality, sexual orientation, disability status, or caste.",
@@ -350,6 +401,10 @@ class MainApp(MDApp):
         return None
 
     def completion(self):
+        """
+        Gets completion results and performs session tasks.
+        :return: str
+        """
         try:
             new_question = self.cb_label.text
             errors = self.get_moderation(new_question)
@@ -378,7 +433,14 @@ class MainApp(MDApp):
             e = str(e).removeprefix("[").removesuffix("]").replace("'", "")
             self.dialog_open("Error", e, "Retry")
 
-    def generate_title(self, new_question, response):
+    def generate_title(self, new_question: str, response: str):
+        """
+        Generates title with given prompt and response. It generates another completion for title based on first \
+        interaction between user and AI.
+        :param new_question:
+        :param response:
+        :return: str
+        """
         title_str = f"""
                         ---BEGIN CONVERSATION---
                         User: {new_question}
@@ -392,7 +454,12 @@ class MainApp(MDApp):
         item.add_widget(IconRightWidget(icon="delete", on_release=self.delete_chat_log))
         return title
 
-    def save_chat_log(self, title):
+    def save_chat_log(self, title: str):
+        """
+        Saves the chat log to the firebase database.
+        :param title:
+        :return: None
+        """
         if self.login_check:
             user = auth_firebase.get_account_info(self.user["idToken"])
             email = self.replace_str(user["users"][0]["email"], "to_db")
@@ -409,6 +476,10 @@ class MainApp(MDApp):
                 )
 
     def get_chat_log(self):
+        """
+        Retrieves the chat log from the firebase database.
+        :return: None
+        """
         if (
                 db.child("chats").get().val() is not None
                 and db.child("chats")
@@ -596,6 +667,11 @@ class MainApp(MDApp):
             return
 
     def delete_chat_log(self, obj):
+        """
+        Deletes chat_log from the firebase database.
+        :param obj:
+        :return: None
+        """
         md_list = self.nav_drawer.ids.chat_list
         list_item = obj.parent.parent
         md_list.remove_widget(list_item)
@@ -615,6 +691,10 @@ class MainApp(MDApp):
         self.switch_session(self.nav_drawer.ids[f"item_{self.chat_count}"])
 
     def send_message(self):
+        """
+        Sends message.
+        :return: None
+        """
         text_field = self.send_layout.ids.text_field
         message_text = text_field.text.strip()
         if message_text != "":
@@ -633,6 +713,10 @@ class MainApp(MDApp):
             return
 
     def show_response(self):
+        """
+        Shows response.
+        :return: None
+        """
         self.response = self.completion()
 
         if self.response:
@@ -667,10 +751,19 @@ class MainApp(MDApp):
 
     @staticmethod
     def read_more_expand(obj):
+        """
+        Expands the chat bubble.
+        :param obj:
+        :return: None
+        """
         obj.parent.parent.children[1].children[0].text = obj.parent.parent.parent.full_text
         obj.parent.remove_widget(obj)
 
     def add_new_chat(self):
+        """
+        Creates new chat.
+        :return: None
+        """
         item = self.nav_drawer.ids[f"item_{self.chat_count}"]
         if not item.text == "New Chat":
             md_list = self.nav_drawer.ids.chat_list
@@ -699,6 +792,11 @@ class MainApp(MDApp):
             return
 
     def switch_session(self, obj):
+        """
+        Switches between sessions based on clicked item.
+        :param obj:
+        :return: None
+        """
         id_dict = self.nav_drawer.ids
         item_id = list(id_dict.keys())[list(id_dict.values()).index(obj)]
         item = id_dict[f"{item_id}"]
@@ -725,7 +823,13 @@ class MainApp(MDApp):
         self.nav_drawer.ids.nav_drawer.set_state("closed")
 
     @staticmethod
-    def replace_str(string, type_of):
+    def replace_str(string: str, type_of: str):
+        """
+        Performs basic replacing action. Firebase Realtime Database not accepts "." and "?" characters.
+        :param string:
+        :param type_of:
+        :return: str
+        """
         if type_of == "to_db":
             replaced_str = (
                 string.replace(".", "-dot-").replace("?", "-ask-").replace("'", "")
