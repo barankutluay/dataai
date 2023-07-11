@@ -1,3 +1,4 @@
+import asyncio
 import logging
 import os
 
@@ -6,10 +7,10 @@ import firebase_admin
 import kivy.properties as kvprops
 import openai
 import pyrebase
-from kivy.storage.jsonstore import JsonStore
 from firebase_admin import auth, credentials
 from kivy.lang import Builder
 from kivy.metrics import dp
+from kivy.storage.jsonstore import JsonStore
 from kivymd.app import MDApp
 from kivymd.uix.boxlayout import MDBoxLayout
 from kivymd.uix.button import MDFlatButton, MDRaisedButton
@@ -100,11 +101,11 @@ class MainApp(MDApp):
         self.title = ""
         self.chat_layouts = []
         self.chat_sessions = []
-        self.store = JsonStore('credentials.json')  # JsonStore for storing credentials
+        self.store = JsonStore('token.json')
 
     def build(self):
-        self.theme_cls.theme_style = "Light"
-        self.theme_cls.primary_palette = "Indigo"
+        self.theme_cls.theme_style = "Dark"
+        self.theme_cls.primary_palette = "BlueGray"
         self.theme_cls.material_style = "M3"
 
         return self.load_login_screen()
@@ -156,12 +157,13 @@ class MainApp(MDApp):
         self.load_signup_screen()
         self.load_home_screen()
         self.chat_layouts.append(self.chat_layout)
-        if "idToken" in self.store:
-            token = self.store["idToken"]["token"]
-            print(token)
-            login_email = auth.verify_id_token(token)["email"]
-            login_password = db.child("users").child(self.replace_str(login_email, "to_db"))\
-                               .child("password").get().val()
+        if "user" in self.store:
+            refresh_token = self.store["user"]["refresh_token"]
+            id_token = auth_firebase.refresh(refresh_token)["idToken"]
+            decoded_id_token = auth.verify_id_token(id_token)
+            login_email = decoded_id_token["email"]
+            login_password = db.child("users").child(self.replace_str(login_email, "to_db")).child("password") \
+                .get().val()
             self.login_screen.ids.login_email.text = login_email
             self.login_screen.ids.login_password.text = login_password
             self.login(auto_login=True)
@@ -231,18 +233,14 @@ class MainApp(MDApp):
                 self.login_check = True
                 self.switch_screen("home")
                 if not auto_login:
+                    self.store.put("user", refresh_token=self.user["refreshToken"])
                     self.dialog_open(
                         "Logged In",
                         f'Successfully logged in as "{db_username}".',
                         "OK",
                     )
-
                 self.get_chat_log()
-
                 self.nav_drawer.ids.user_label.text = self.user["email"]
-
-                self.store.put("idToken", token=self.user["idToken"])
-                self.user["refreshToken"] = auth_firebase.refresh(self.user["refreshToken"])["refreshToken"]
             else:
                 raise Exception("Invalid email or password")
         except Exception as e:
@@ -337,7 +335,7 @@ class MainApp(MDApp):
         self.dialog.dismiss(obj)
 
     @staticmethod
-    def get_response(instructions: str, previous_questions_and_answers: list, new_question: str):
+    async def get_response(instructions: str, previous_questions_and_answers: list, new_question: str):
         """
         Creates a completion with given parameters and prompt.
         :param instructions: Instructions that will be given to chatbot
@@ -353,7 +351,7 @@ class MainApp(MDApp):
             messages.append({"role": "assistant", "content": answer})
         messages.append({"role": "user", "content": new_question})
 
-        completion = openai.ChatCompletion.create(
+        completion = await openai.ChatCompletion.acreate(
             model="gpt-3.5-turbo",
             messages=messages,
             temperature=TEMPERATURE,
@@ -365,7 +363,7 @@ class MainApp(MDApp):
         return str(completion.choices[0].message.content)
 
     @staticmethod
-    def get_moderation(question: str):
+    async def get_moderation(question: str):
         """
         Checks moderation of the given prompt.
         :param question:
@@ -390,7 +388,7 @@ class MainApp(MDApp):
         # if "failure_keyword" in question.lower():
         #     return ["Failed moderation check for testing purposes."]
 
-        response = openai.Moderation.create(input=question)
+        response = await openai.Moderation.acreate(input=question)
         if response.results[0].flagged:
             result = [
                 "Failed moderation check: " + error
@@ -400,19 +398,16 @@ class MainApp(MDApp):
             return result
         return None
 
-    def completion(self):
+    def completion(self, prompt):
         """
         Gets completion results and performs session tasks.
-        :return: str
+        :return: None
         """
         try:
-            new_question = self.cb_label.text
-            errors = self.get_moderation(new_question)
+            moderation_task = asyncio.ensure_future(self.get_moderation(prompt))
+            errors = asyncio.get_event_loop().run_until_complete(asyncio.gather(moderation_task))[-1]
             if errors:
                 raise Exception(errors)
-            self.response = self.get_response(INSTRUCTIONS, self.prev_q_a, new_question)
-            if len(self.prev_q_a) == 0:
-                self.title = self.generate_title(new_question, self.response)
 
             item_id = f"item_{self.chat_layout.chat_id}"
 
@@ -420,15 +415,13 @@ class MainApp(MDApp):
                 if session_item_id == item_id:
                     self.chat_sessions[i] = (
                         item_id,
-                        prev_q_a + [(new_question, self.response)],
+                        prev_q_a + [(prompt, self.response)],
                     )
-                    self.prev_q_a = prev_q_a + [(new_question, self.response)]
+                    self.prev_q_a = prev_q_a + [(prompt, self.response)]
                     break
             else:
-                self.chat_sessions.append((item_id, [(new_question, self.response)]))
-                self.prev_q_a = [(new_question, self.response)]
-
-            return self.response
+                self.chat_sessions.append((item_id, [(prompt, self.response)]))
+                self.prev_q_a = [(prompt, self.response)]
         except Exception as e:
             e = str(e).removeprefix("[").removesuffix("]").replace("'", "")
             self.dialog_open("Error", e, "Retry")
@@ -448,7 +441,8 @@ class MainApp(MDApp):
                         ---END CONVERSATION---
                         Summarize the conversation in 5 words or fewer in user's language:
                     """
-        title = self.get_response(INSTRUCTIONS, self.prev_q_a, title_str)
+        title_task = asyncio.ensure_future(self.get_response(INSTRUCTIONS, self.prev_q_a, title_str))
+        title = asyncio.get_event_loop().run_until_complete(asyncio.gather(title_task))[-1]
         item = self.nav_drawer.ids[f"item_{self.chat_count}"]
         item.text = title
         item.add_widget(IconRightWidget(icon="delete", on_release=self.delete_chat_log))
@@ -707,7 +701,13 @@ class MainApp(MDApp):
             chat_children.add_widget(cb_parent)
             self.cb_label = cb_label
             self.clear_text(text_field)
+            response_task = asyncio.ensure_future(self.get_response(INSTRUCTIONS, self.prev_q_a, message_text))
+            self.response = asyncio.get_event_loop().run_until_complete(asyncio.gather(response_task))[-1]
+            if len(self.prev_q_a) == 0:
+                self.title = self.generate_title(message_text, self.response)
+            self.completion(message_text)
             self.show_response()
+            self.save_chat_log(self.title)
         else:
             self.dialog_open("Blank Prompt", "Input a valid prompt.", "Retry")
             return
@@ -717,8 +717,6 @@ class MainApp(MDApp):
         Shows response.
         :return: None
         """
-        self.response = self.completion()
-
         if self.response:
             if len(self.response) > 200:
                 cb_parent = ChatBubble(pos_hint={"left": 1}, halign="left", btype="r")
@@ -746,8 +744,6 @@ class MainApp(MDApp):
                 chat_children = self.chat_layout.children[0].children[0]
                 chat_children.add_widget(cb_parent)
                 self.cb_label = cb_label
-
-            self.save_chat_log(self.title)
 
     @staticmethod
     def read_more_expand(obj):
@@ -838,10 +834,6 @@ class MainApp(MDApp):
         if type_of == "from_db":
             replaced_str = string.replace("-dot-", ".").replace("-ask-", "?")
             return replaced_str
-
-
-# TODO: Mesaj gönderdiğinde yazıyor gibi bir animasyon gelmeli, bu animasyon ekranda belirdiğinde eş zamanlı olarak
-#  response üretilmeli, daha sonra animasyon kaybolup response gösterilmeli
 
 
 if __name__ == "__main__":

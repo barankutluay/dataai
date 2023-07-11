@@ -159,7 +159,7 @@ sdk/
 
 builds/
 
-credentials.json
+token.json
 
 # PyCharm
 #  JetBrains specific template is maintained in a separate JetBrains.gitignore that can
