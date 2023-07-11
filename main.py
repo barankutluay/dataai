@@ -78,6 +78,7 @@ class ChatLayout(MDBoxLayout):
 class MainApp(MDApp):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
+        self.logged_out = False
         self.read_more_button = None
         self.cb_box = None
         self.camera_screen = None
@@ -240,6 +241,7 @@ class MainApp(MDApp):
                         "OK",
                     )
                 self.get_chat_log()
+                self.logged_out = False
                 self.nav_drawer.ids.user_label.text = self.user["email"]
             else:
                 raise Exception("Invalid email or password")
@@ -298,6 +300,35 @@ class MainApp(MDApp):
                     signup_screen.ids.signup_email,
                     signup_screen.ids.signup_password,
                 )
+
+    def log_out(self):
+        """
+        Logs out from the app.
+        :return: None
+        """
+        # pass
+        f = "token.json"
+        if os.path.isfile(f):
+            os.remove(f)
+            self.switch_screen("login")
+            self.clear_text(self.login_screen.ids.login_email, self.login_screen.ids.login_password)
+            self.dialog_open("Logged Out", "Successfully logged out.", "OK")
+            self.read_more_button = None
+            self.cb_box = None
+            self.cb_label = None
+            self.login_check = False
+            self.prev_q_a = []
+            self.cb_parent = None
+            self.user = None
+            self.chat_bubbles = []
+            self.response = ""
+            self.chat_count = 0
+            self.title = ""
+            self.chat_layouts = []
+            self.chat_layout = ChatLayout(chat_id=0)
+            self.chat_layouts.append(self.chat_layout)
+            self.chat_sessions = []
+            self.logged_out = True
 
     def create_dialog(self):
         """
@@ -547,7 +578,8 @@ class MainApp(MDApp):
                     right_widget = IconRightWidget(
                         icon="delete", on_release=self.delete_chat_log
                     )
-                    item.add_widget(right_widget)
+                    if not item.children[0].children:
+                        item.add_widget(right_widget)
 
                     for i in range(len(prompt_bubbles)):
                         prompt_bubble = prompt_bubbles[i]
@@ -585,16 +617,19 @@ class MainApp(MDApp):
                             answer_bubble.parent.remove_widget(answer_bubble)
                         chat_children.add_widget(answer_bubble)
 
-                    md_list = self.nav_drawer.ids.chat_list
-                    list_item = OneLineAvatarIconListItem(
-                        text="New Chat",
-                        _txt_left_pad=dp(8),
-                        on_release=self.switch_session,
-                        fake_id=self.chat_count + 1,
-                    )
-                    md_list.add_widget(list_item)
-                    self.chat_count += 1
-                    self.nav_drawer.ids[f"item_{self.chat_count}"] = list_item
+                    if not self.logged_out:
+                        md_list = self.nav_drawer.ids.chat_list
+                        list_item = OneLineAvatarIconListItem(
+                            text="New Chat",
+                            _txt_left_pad=dp(8),
+                            on_release=self.switch_session,
+                            fake_id=self.chat_count + 1,
+                        )
+                        md_list.add_widget(list_item)
+                        self.chat_count += 1
+                        self.nav_drawer.ids[f"item_{self.chat_count}"] = list_item
+                    else:
+                        self.chat_count += 1
                 else:
                     chat_children = chat_layout.children[0].children[0]
                     item = self.nav_drawer.ids[f"item_{self.chat_count}"]
@@ -602,7 +637,8 @@ class MainApp(MDApp):
                     right_widget = IconRightWidget(
                         icon="delete", on_release=self.delete_chat_log
                     )
-                    item.add_widget(right_widget)
+                    if not item.children[0].children:
+                        item.add_widget(right_widget)
 
                     for i in range(len(prompt_bubbles)):
                         prompt_bubble = prompt_bubbles[i]
@@ -642,16 +678,19 @@ class MainApp(MDApp):
 
                     self.chat_layouts.append(chat_layout)
 
-                    md_list = self.nav_drawer.ids.chat_list
-                    list_item = OneLineAvatarIconListItem(
-                        text="New Chat",
-                        _txt_left_pad=dp(8),
-                        on_release=self.switch_session,
-                        fake_id=self.chat_count + 1,
-                    )
-                    md_list.add_widget(list_item)
-                    self.chat_count += 1
-                    self.nav_drawer.ids[f"item_{self.chat_count}"] = list_item
+                    if not self.logged_out:
+                        md_list = self.nav_drawer.ids.chat_list
+                        list_item = OneLineAvatarIconListItem(
+                            text="New Chat",
+                            _txt_left_pad=dp(8),
+                            on_release=self.switch_session,
+                            fake_id=self.chat_count + 1,
+                        )
+                        md_list.add_widget(list_item)
+                        self.chat_count += 1
+                        self.nav_drawer.ids[f"item_{self.chat_count}"] = list_item
+                    else:
+                        self.chat_count += 1
 
             chat_layout = ChatLayout(chat_id=chat_id)
             self.chat_layouts.append(chat_layout)
@@ -670,12 +709,10 @@ class MainApp(MDApp):
         list_item = obj.parent.parent
         md_list.remove_widget(list_item)
 
-        chats = (
-            db.child("chats")
-            .child(self.replace_str(self.user["email"], "to_db"))
-            .child(self.replace_str(obj.parent.parent.text, "to_db"))
-        )
-        chats.remove()
+        db.child("chats") \
+            .child(self.replace_str(self.user["email"], "to_db")) \
+            .child(self.replace_str(obj.parent.parent.text, "to_db")) \
+            .remove()
 
         chat_layout = self.chat_layouts[list_item.fake_id]
         self.title = list_item.text
@@ -691,6 +728,7 @@ class MainApp(MDApp):
         """
         text_field = self.send_layout.ids.text_field
         message_text = text_field.text.strip()
+
         if message_text != "":
             cb_parent = ChatBubble(pos_hint={"right": 1}, halign="right", btype="m")
             cb_relative = cb_parent.children[0]
@@ -703,8 +741,10 @@ class MainApp(MDApp):
             self.clear_text(text_field)
             response_task = asyncio.ensure_future(self.get_response(INSTRUCTIONS, self.prev_q_a, message_text))
             self.response = asyncio.get_event_loop().run_until_complete(asyncio.gather(response_task))[-1]
+
             if len(self.prev_q_a) == 0:
                 self.title = self.generate_title(message_text, self.response)
+
             self.completion(message_text)
             self.show_response()
             self.save_chat_log(self.title)
@@ -761,6 +801,7 @@ class MainApp(MDApp):
         :return: None
         """
         item = self.nav_drawer.ids[f"item_{self.chat_count}"]
+
         if not item.text == "New Chat":
             md_list = self.nav_drawer.ids.chat_list
             list_item = OneLineAvatarIconListItem(
@@ -803,7 +844,6 @@ class MainApp(MDApp):
             chat_layout.parent.remove_widget(chat_layout)
 
         self.home_screen.add_widget(chat_layout, index=2)
-
         self.chat_layout = chat_layout
 
         for session_item_id, prev_q_a in self.chat_sessions:
@@ -815,7 +855,6 @@ class MainApp(MDApp):
 
         self.title = item.text
         self.clear_text(self.send_layout.ids.text_field)
-
         self.nav_drawer.ids.nav_drawer.set_state("closed")
 
     @staticmethod
@@ -831,6 +870,7 @@ class MainApp(MDApp):
                 string.replace(".", "-dot-").replace("?", "-ask-").replace("'", "")
             )
             return replaced_str
+
         if type_of == "from_db":
             replaced_str = string.replace("-dot-", ".").replace("-ask-", "?")
             return replaced_str
