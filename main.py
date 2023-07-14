@@ -8,6 +8,7 @@ import kivy.properties as kvprops
 import openai
 import pyrebase
 from firebase_admin import auth, credentials
+from kivy.clock import Clock
 from kivy.lang import Builder
 from kivy.metrics import dp
 from kivy.storage.jsonstore import JsonStore
@@ -78,6 +79,8 @@ class ChatLayout(MDBoxLayout):
 class MainApp(MDApp):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
+        self.delete_confirmation = None
+        self.dialog_btn_2 = None
         self.logged_out = False
         self.read_more_button = None
         self.cb_box = None
@@ -310,6 +313,7 @@ class MainApp(MDApp):
         f = "token.json"
         if os.path.isfile(f):
             os.remove(f)
+            self.nav_drawer.ids.nav_drawer.set_state("closed")
             self.switch_screen("login")
             self.clear_text(self.login_screen.ids.login_email, self.login_screen.ids.login_password)
             self.dialog_open("Logged Out", "Successfully logged out.", "OK")
@@ -340,6 +344,46 @@ class MainApp(MDApp):
                 text="", on_release=self.dialog_dismiss, elevation=2
             )
             self.dialog = MDDialog(buttons=[self.dialog_btn], elevation=2)
+
+    def create_delete_dialog(self):
+        """
+        Create delete dialog window.
+        :return: None
+        """
+        if not self.dialog:
+            self.dialog_btn = MDRaisedButton(
+                text="", on_release=self.dialog_dismiss, elevation=2
+            )
+            self.dialog_btn_2 = MDRaisedButton(
+                text="", on_release=self.dialog_dismiss, elevation=2
+            )
+            self.dialog = MDDialog(buttons=[self.dialog_btn, self.dialog_btn_2], elevation=2)
+
+    def delete_dialog_open(self, title_text: str, dg_text: str, btn_text: str, d_btn_text: str):
+        """
+        Opens the delete dialog window.
+        :param d_btn_text:
+        :param title_text:
+        :param dg_text:
+        :param btn_text:
+        :return: None
+        """
+        self.create_delete_dialog()
+
+        self.dialog.title = title_text
+        self.dialog.text = dg_text
+        self.dialog_btn.text = btn_text
+        self.dialog_btn_2.text = d_btn_text
+
+        # Assign the callback function to handle the user's response
+        self.dialog_btn.on_release = lambda: self.set_delete_confirmation(True)
+        self.dialog_btn_2.on_release = lambda: self.set_delete_confirmation(False)
+
+        self.dialog.open()
+
+    def set_delete_confirmation(self, confirmation: bool):
+        self.delete_confirmation = confirmation
+        self.dialog.dismiss()
 
     def dialog_open(self, title_text: str, dg_text: str, btn_text: str):
         """
@@ -705,21 +749,42 @@ class MainApp(MDApp):
         :param obj:
         :return: None
         """
-        md_list = self.nav_drawer.ids.chat_list
-        list_item = obj.parent.parent
-        md_list.remove_widget(list_item)
 
-        db.child("chats") \
-            .child(self.replace_str(self.user["email"], "to_db")) \
-            .child(self.replace_str(obj.parent.parent.text, "to_db")) \
-            .remove()
+        self.delete_dialog_open("Warning", "Do you really want to delete this chat?", "OK", "Cancel")
 
-        chat_layout = self.chat_layouts[list_item.fake_id]
-        self.title = list_item.text
+        Clock.schedule_interval(lambda dt: self.check_delete_confirmation(obj), 0.1)
 
-        chat_layout.children[0].children[0].clear_widgets()
-        self.add_new_chat()
-        self.switch_session(self.nav_drawer.ids[f"item_{self.chat_count}"])
+        self.delete_confirmation = None
+
+    def check_delete_confirmation(self, obj):
+        """
+        Checks deleting operation to confirm.
+        :param obj:
+        :return:
+        """
+        if self.delete_confirmation is not None:
+            Clock.unschedule(self.check_delete_confirmation)
+
+            if self.delete_confirmation:
+                md_list = self.nav_drawer.ids.chat_list
+                list_item = obj.parent.parent
+                md_list.remove_widget(list_item)
+
+                db.child("chats") \
+                    .child(self.replace_str(self.user["email"], "to_db")) \
+                    .child(self.replace_str(obj.parent.parent.text, "to_db")) \
+                    .remove()
+
+                chat_layout = self.chat_layouts[list_item.fake_id]
+                self.title = list_item.text
+
+                chat_layout.children[0].children[0].clear_widgets()
+                self.add_new_chat()
+                self.switch_session(self.nav_drawer.ids[f"item_{self.chat_count}"])
+            else:
+                pass
+
+            self.delete_confirmation = None
 
     def send_message(self):
         """
