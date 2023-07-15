@@ -1,4 +1,18 @@
 #:import Clipboard kivy.core.clipboard.Clipboard
+<OneLineAvatarIconListItem>:
+    theme_text_color: "Custom"
+    text_color: "black" if app.theme_cls.theme_style == "Light" else "white"
+
+
+<IconRightWidget>:
+    theme_text_color: "Custom"
+    text_color: "black" if app.theme_cls.theme_style == "Light" else "white"
+
+
+<MDFlatButton>:
+    theme_text_color: "Custom"
+    text_color: "black" if app.theme_cls.theme_style == "Light" else "white"
+
 
 <ContentNavigationDrawer@MDBoxLayout>:
 
@@ -34,7 +48,8 @@
                 size_hint_y: None
                 text: ""
                 halign: root.halign
-                theme_text_color: "Primary"
+                theme_text_color: "Custom"
+                text_color: "black" if app.theme_cls.theme_style == "Light" else "white"
                 height: self.texture_size[1]
                 pos_hint: {'center_x': 0.5, 'center_y': 0.5}
                 # on_texture_size:
@@ -46,5 +61,7 @@
                 icon: "content-copy" 
                 pos_hint: {'top': 1.0, 'right': 1.0}
                 icon_size: "12sp"
+                theme_text_color: "Custom"
+                text_color: "black" if app.theme_cls.theme_style == "Light" else "white"
                 on_release:
                     Clipboard.copy(root.ids.chat_bubble_text.text)

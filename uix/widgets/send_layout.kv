@@ -14,12 +14,17 @@
         hint_text: "Send message"
         max_height: dp(125)
         md_bg_color: app.theme_cls.primary_color
-        fill_color_normal: (1, 1, 1, 1) if app.theme_cls.theme_style == "Light" else (18/255, 18/255, 18/255, 1)
-        fill_color_focus: (1, 1, 1, 1) if app.theme_cls.theme_style == "Light" else (18/255, 18/255, 18/255, 1)
-    MDFloatingActionButton:
+        fill_color_normal: [1, 1, 1, 1] if app.theme_cls.theme_style == "Light" else [18/255, 18/255, 18/255, 1]
+        fill_color_focus: [1, 1, 1, 1] if app.theme_cls.theme_style == "Light" else [18/255, 18/255, 18/255, 1]
+        hint_text_color_normal: "gray"
+    MDIconButton:
         icon: "send-circle"
-        elevation: 3
-        on_release: 
+        icon_size: sp(32)
+        elevation: 2
+        md_bg_color: app.theme_cls.primary_color
+        theme_text_color: "Custom"
+        text_color: "white"
+        on_release:
             app.send_message()
 
 

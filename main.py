@@ -17,6 +17,7 @@ from kivymd.uix.boxlayout import MDBoxLayout
 from kivymd.uix.button import MDFlatButton, MDRaisedButton
 from kivymd.uix.dialog import MDDialog
 from kivymd.uix.list import IconRightWidget, OneLineAvatarIconListItem
+from kivymd.uix.menu import MDDropdownMenu
 from kivymd.uix.screenmanager import MDScreenManager
 
 dotenv.load_dotenv()
@@ -76,9 +77,18 @@ class ChatLayout(MDBoxLayout):
     chat_id = kvprops.NumericProperty()
 
 
+# TODO: Chat bubble tıklababilir bir obje olmalı, daha sonra yemek tarifi istenicek, elindeki malzemeler belirlenip,
+#  ona göre bir yemek tarifi verilebilecek, ya da isterse direkt olarak (10 tane tarif) verilebilecek, daha sonra,
+#  içinden seçilip onun tarifi yazdırılıcak. Bu uygulama base app olarak kalıcak, bu uygulamayı çoğaltacağız.
+
+# TODO: Ayarlar sayfası yapılıcak. İçinde logout, dark-light theme seçeneği, delete account ve verify email olacak.
+
 class MainApp(MDApp):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
+        self.menu_items = None
+        self.menu = None
+        self.settings_screen = None
         self.delete_confirmation = None
         self.dialog_btn_2 = None
         self.logged_out = False
@@ -108,8 +118,8 @@ class MainApp(MDApp):
         self.store = JsonStore('token.json')
 
     def build(self):
-        self.theme_cls.theme_style = "Dark"
-        self.theme_cls.primary_palette = "BlueGray"
+        self.theme_cls.theme_style = "Light"
+        self.theme_cls.primary_palette = "Red"
         self.theme_cls.material_style = "M3"
 
         return self.load_login_screen()
@@ -157,6 +167,55 @@ class MainApp(MDApp):
         self.camera_screen = Builder.load_file("uix/screens/camera_screen.kv")
         self.sm.add_widget(self.camera_screen)
 
+    def load_settings_screen(self):
+
+        if self.settings_screen is None:
+            self.menu_items = [
+                {
+                    "text": "Light",
+                    "viewclass": "OneLineListItem",
+                    "on_release": lambda x="Light": self.menu_callback(x),
+                    "theme_text_color": "Custom",
+                    "text_color": "black",
+                },
+                {
+                    "text": "Dark",
+                    "viewclass": "OneLineListItem",
+                    "on_release": lambda x="Dark": self.menu_callback(x),
+                    "theme_text_color": "Custom",
+                    "text_color": "black"
+                }
+            ]
+            self.settings_screen = Builder.load_file("uix/screens/settings_screen.kv")
+            self.sm.add_widget(self.settings_screen)
+
+        self.menu = MDDropdownMenu(
+            caller=self.settings_screen.ids.dropdown_item,
+            items=self.menu_items,
+            width_mult=1.5,
+            max_height=dp(112),
+        )
+
+        self.nav_drawer.ids.nav_drawer.set_state("closed")
+
+    def menu_callback(self, text_item):
+        self.theme_cls.theme_style_switch_animation = True
+        self.theme_cls.theme_style_switch_animation_duration = 0.4
+
+        if text_item == "Dark":
+            self.theme_cls.theme_style = "Dark"
+            self.settings_screen.ids.dropdown_item.text = "Dark"
+            self.theme_cls.theme_style_switch_animation_duration = 0
+            self.menu_items = [item.update({"text_color": "white"}) or item for item in self.menu_items]
+
+        else:
+            self.theme_cls.theme_style = "Light"
+            self.settings_screen.ids.dropdown_item.text = "Light"
+            self.theme_cls.theme_style_switch_animation_duration = 0
+            self.menu_items = [item.update({"text_color": "black"}) or item for item in self.menu_items]
+
+        self.menu.dismiss()
+
     def on_start(self):
         self.load_signup_screen()
         self.load_home_screen()
@@ -193,6 +252,9 @@ class MainApp(MDApp):
         """
         if screen_name == "camera":
             self.load_camera_screen()
+
+        if screen_name == "settings":
+            self.load_settings_screen()
 
         self.sm.current = screen_name
 
@@ -384,6 +446,36 @@ class MainApp(MDApp):
     def set_delete_confirmation(self, confirmation: bool):
         self.delete_confirmation = confirmation
         self.dialog.dismiss()
+
+    def check_delete_confirmation(self, obj):
+        """
+        Checks deleting operation to confirm.
+        :param obj:
+        :return:
+        """
+        if self.delete_confirmation is not None:
+            Clock.unschedule(self.check_delete_confirmation)
+
+            if self.delete_confirmation:
+                md_list = self.nav_drawer.ids.chat_list
+                list_item = obj.parent.parent
+                md_list.remove_widget(list_item)
+
+                db.child("chats") \
+                    .child(self.replace_str(self.user["email"], "to_db")) \
+                    .child(self.replace_str(obj.parent.parent.text, "to_db")) \
+                    .remove()
+
+                chat_layout = self.chat_layouts[list_item.fake_id]
+                self.title = list_item.text
+
+                chat_layout.children[0].children[0].clear_widgets()
+                self.add_new_chat()
+                self.switch_session(self.nav_drawer.ids[f"item_{self.chat_count}"])
+            else:
+                pass
+
+            self.delete_confirmation = None
 
     def dialog_open(self, title_text: str, dg_text: str, btn_text: str):
         """
@@ -668,6 +760,8 @@ class MainApp(MDApp):
                             _txt_left_pad=dp(8),
                             on_release=self.switch_session,
                             fake_id=self.chat_count + 1,
+                            theme_text_color="Custom",
+                            text_color="black" if self.theme_cls.theme_style == "Light" else "white",
                         )
                         md_list.add_widget(list_item)
                         self.chat_count += 1
@@ -729,6 +823,8 @@ class MainApp(MDApp):
                             _txt_left_pad=dp(8),
                             on_release=self.switch_session,
                             fake_id=self.chat_count + 1,
+                            theme_text_color="Custom",
+                            text_color="black" if self.theme_cls.theme_style == "Light" else "white",
                         )
                         md_list.add_widget(list_item)
                         self.chat_count += 1
@@ -745,7 +841,7 @@ class MainApp(MDApp):
 
     def delete_chat_log(self, obj):
         """
-        Deletes chat_log from the firebase database.
+        Deletes chat log from the firebase database.
         :param obj:
         :return: None
         """
@@ -755,36 +851,6 @@ class MainApp(MDApp):
         Clock.schedule_interval(lambda dt: self.check_delete_confirmation(obj), 0.1)
 
         self.delete_confirmation = None
-
-    def check_delete_confirmation(self, obj):
-        """
-        Checks deleting operation to confirm.
-        :param obj:
-        :return:
-        """
-        if self.delete_confirmation is not None:
-            Clock.unschedule(self.check_delete_confirmation)
-
-            if self.delete_confirmation:
-                md_list = self.nav_drawer.ids.chat_list
-                list_item = obj.parent.parent
-                md_list.remove_widget(list_item)
-
-                db.child("chats") \
-                    .child(self.replace_str(self.user["email"], "to_db")) \
-                    .child(self.replace_str(obj.parent.parent.text, "to_db")) \
-                    .remove()
-
-                chat_layout = self.chat_layouts[list_item.fake_id]
-                self.title = list_item.text
-
-                chat_layout.children[0].children[0].clear_widgets()
-                self.add_new_chat()
-                self.switch_session(self.nav_drawer.ids[f"item_{self.chat_count}"])
-            else:
-                pass
-
-            self.delete_confirmation = None
 
     def send_message(self):
         """
@@ -874,6 +940,8 @@ class MainApp(MDApp):
                 _txt_left_pad=dp(8),
                 on_release=self.switch_session,
                 fake_id=self.chat_count + 1,
+                theme_text_color="Custom",
+                text_color="black" if self.theme_cls.theme_style == "Light" else "white",
             )
             md_list.add_widget(list_item)
             self.chat_count += 1

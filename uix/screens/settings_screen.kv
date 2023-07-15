@@ -1,0 +1,47 @@
+<SettingsScreen@MDScreen>:
+    name: "settings"
+    MDRelativeLayout:
+        size_hint: 1, 1
+        pos_hint: {"center_x": 0.5, "center_y": 0.5}
+        MDIconButton:
+            icon: "arrow-left"
+            pos_hint: {"left": 1.0, "center_y": 0.95}
+            theme_text_color: "Custom"
+            text_color: "black" if app.theme_cls.theme_style == "Light" else "white"
+            on_release:
+                app.switch_screen("home")
+        MDLabel:
+            text:"Settings"
+            font_style:"H5"
+            halign:"center"
+            pos_hint: {"center_y": 0.95}
+            theme_text_color: "Custom"
+            text_color: "black" if app.theme_cls.theme_style == "Light" else "white"
+        MDBoxLayout:
+            orientation: "vertical"
+            size_hint: 0.9, 0.9
+            pos_hint: {"center_x": 0.5, "bottom": 1.0}
+#            md_bg_color: app.theme_cls.primary_color
+            MDLabel:
+                id: settings_email
+                text: "Email: "
+                theme_text_color: "Custom"
+                text_color: "black" if app.theme_cls.theme_style == "Light" else "white"
+            MDLabel:
+                id: settings_username
+                text: "Username: "
+                theme_text_color: "Custom"
+                text_color: "black" if app.theme_cls.theme_style == "Light" else "white"
+            MDRelativeLayout:
+                MDLabel:
+                    text: "Choose theme:"
+                    theme_text_color: "Custom"
+                    text_color: "black" if app.theme_cls.theme_style == "Light" else "white"
+                MDDropDownItem:
+                    id: dropdown_item
+                    pos_hint: {"right": 1.0, "center_y": 0.5}
+                    text: "Light"
+                    on_release: app.menu.open()
+
+
+SettingsScreen:

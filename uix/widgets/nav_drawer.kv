@@ -24,6 +24,8 @@
                         id: user_label
                         size_hint_x: 0.75
                         halign: "left"
+                        theme_text_color: "Custom"
+                        text_color: "black" if app.theme_cls.theme_style == "Light" else "white"
                     MDBoxLayout:
                         size_hint_x: 0.25
                         MDIconButton:
@@ -35,7 +37,7 @@
                             text_color: "white"
                             pos_hint: {'right': 1.0,'center_y': 0.5}
                             icon_size: sp(32)
-                            on_release: app.log_out()
+                            on_release: app.switch_screen("settings")
 
             MDList:
                 id: chat_list
@@ -45,6 +47,8 @@
                     id: item_0
                     fake_id: 0
                     text: "New Chat"
+                    theme_text_color: "Custom"
+                    text_color: "black" if app.theme_cls.theme_style == "Light" else "white"
                     _txt_left_pad: "8dp"
                     on_release: app.switch_session(self)
 
