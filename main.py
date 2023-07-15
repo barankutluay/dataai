@@ -81,7 +81,7 @@ class ChatLayout(MDBoxLayout):
 #  ona göre bir yemek tarifi verilebilecek, ya da isterse direkt olarak (10 tane tarif) verilebilecek, daha sonra,
 #  içinden seçilip onun tarifi yazdırılıcak. Bu uygulama base app olarak kalıcak, bu uygulamayı çoğaltacağız.
 
-# TODO: Ayarlar sayfası yapılıcak. İçinde logout, dark-light theme seçeneği, delete account ve verify email olacak.
+# TODO: Verify email ve delete account fonksiyonları kaldı
 
 class MainApp(MDApp):
     def __init__(self, **kwargs):
@@ -115,12 +115,34 @@ class MainApp(MDApp):
         self.title = ""
         self.chat_layouts = []
         self.chat_sessions = []
-        self.store = JsonStore('token.json')
+        self.store = JsonStore('settings.json')
+        self.menu_items = [
+            {
+                "text": "Light",
+                "viewclass": "OneLineListItem",
+                "on_release": lambda x="Light": self.menu_callback(x),
+                "theme_text_color": "Custom",
+                "text_color": "black",
+            },
+            {
+                "text": "Dark",
+                "viewclass": "OneLineListItem",
+                "on_release": lambda x="Dark": self.menu_callback(x),
+                "theme_text_color": "Custom",
+                "text_color": "black"
+            }
+        ]
 
     def build(self):
-        self.theme_cls.theme_style = "Light"
+        self.theme_cls.theme_style = self.store.get("theme")["theme"]
         self.theme_cls.primary_palette = "Red"
+        self.theme_cls.primary_hue = "800"
         self.theme_cls.material_style = "M3"
+
+        if self.theme_cls.theme_style == "Dark":
+            self.menu_items = [item.update({"text_color": "white"}) or item for item in self.menu_items]
+        else:
+            self.menu_items = [item.update({"text_color": "black"}) or item for item in self.menu_items]
 
         return self.load_login_screen()
 
@@ -170,24 +192,12 @@ class MainApp(MDApp):
     def load_settings_screen(self):
 
         if self.settings_screen is None:
-            self.menu_items = [
-                {
-                    "text": "Light",
-                    "viewclass": "OneLineListItem",
-                    "on_release": lambda x="Light": self.menu_callback(x),
-                    "theme_text_color": "Custom",
-                    "text_color": "black",
-                },
-                {
-                    "text": "Dark",
-                    "viewclass": "OneLineListItem",
-                    "on_release": lambda x="Dark": self.menu_callback(x),
-                    "theme_text_color": "Custom",
-                    "text_color": "black"
-                }
-            ]
             self.settings_screen = Builder.load_file("uix/screens/settings_screen.kv")
             self.sm.add_widget(self.settings_screen)
+            self.settings_screen.ids.settings_email.text += self.user["email"]
+            username = db.child("users").child(self.replace_str(self.user["email"], "to_db"))\
+                         .child("username").get().val()
+            self.settings_screen.ids.settings_username.text += username
 
         self.menu = MDDropdownMenu(
             caller=self.settings_screen.ids.dropdown_item,
@@ -207,12 +217,14 @@ class MainApp(MDApp):
             self.settings_screen.ids.dropdown_item.text = "Dark"
             self.theme_cls.theme_style_switch_animation_duration = 0
             self.menu_items = [item.update({"text_color": "white"}) or item for item in self.menu_items]
+            self.store.put("theme", theme="Dark")
 
         else:
             self.theme_cls.theme_style = "Light"
             self.settings_screen.ids.dropdown_item.text = "Light"
             self.theme_cls.theme_style_switch_animation_duration = 0
             self.menu_items = [item.update({"text_color": "black"}) or item for item in self.menu_items]
+            self.store.put("theme", theme="Light")
 
         self.menu.dismiss()
 
@@ -372,7 +384,7 @@ class MainApp(MDApp):
         :return: None
         """
         # pass
-        f = "token.json"
+        f = "settings.json"
         if os.path.isfile(f):
             os.remove(f)
             self.nav_drawer.ids.nav_drawer.set_state("closed")
@@ -401,25 +413,23 @@ class MainApp(MDApp):
         Create dialog window.
         :return: None
         """
-        if not self.dialog:
-            self.dialog_btn = MDRaisedButton(
-                text="", on_release=self.dialog_dismiss, elevation=2
-            )
-            self.dialog = MDDialog(buttons=[self.dialog_btn], elevation=2)
+        self.dialog_btn = MDRaisedButton(
+            text="", on_release=self.dialog_dismiss, elevation=2
+        )
+        self.dialog = MDDialog(buttons=[self.dialog_btn], elevation=2)
 
     def create_delete_dialog(self):
         """
         Create delete dialog window.
         :return: None
         """
-        if not self.dialog:
-            self.dialog_btn = MDRaisedButton(
-                text="", on_release=self.dialog_dismiss, elevation=2
-            )
-            self.dialog_btn_2 = MDRaisedButton(
-                text="", on_release=self.dialog_dismiss, elevation=2
-            )
-            self.dialog = MDDialog(buttons=[self.dialog_btn, self.dialog_btn_2], elevation=2)
+        self.dialog_btn = MDRaisedButton(
+            text="", on_release=self.dialog_dismiss, elevation=2
+        )
+        self.dialog_btn_2 = MDRaisedButton(
+            text="", on_release=self.dialog_dismiss, elevation=2
+        )
+        self.dialog = MDDialog(buttons=[self.dialog_btn, self.dialog_btn_2], elevation=2)
 
     def delete_dialog_open(self, title_text: str, dg_text: str, btn_text: str, d_btn_text: str):
         """

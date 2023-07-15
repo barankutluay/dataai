@@ -28,6 +28,8 @@
                 helper_text: "Required"
                 helper_text_mode: "on_error"
                 error_color: app.theme_cls.secondary_text_color
+                fill_color_normal: [224/255, 224/255, 224/255, 1] if app.theme_cls.theme_style == "Light" else [0, 0, 0, 1]
+                fill_color_focus: [245/255, 245/255, 245/255, 1] if app.theme_cls.theme_style == "Light" else [31/255, 31/255, 31/255, 1]
                 icon_right: "account"
                 icon_right_color: app.theme_cls.primary_color
                 required: True
@@ -45,6 +47,8 @@
                 helper_text: "Required"
                 helper_text_mode: "on_error"
                 error_color: app.theme_cls.secondary_text_color
+                fill_color_normal: [224/255, 224/255, 224/255, 1] if app.theme_cls.theme_style == "Light" else [0, 0, 0, 1]
+                fill_color_focus: [245/255, 245/255, 245/255, 1] if app.theme_cls.theme_style == "Light" else [31/255, 31/255, 31/255, 1]
                 validator: "email"
                 icon_right: "email"
                 icon_right_color: app.theme_cls.primary_color
@@ -67,6 +71,8 @@
                     helper_text:"Required"
                     helper_text_mode:  "on_error"
                     error_color: app.theme_cls.secondary_text_color
+                    fill_color_normal: [224/255, 224/255, 224/255, 1] if app.theme_cls.theme_style == "Light" else [0, 0, 0, 1]
+                    fill_color_focus: [245/255, 245/255, 245/255, 1] if app.theme_cls.theme_style == "Light" else [31/255, 31/255, 31/255, 1]
                     mode: "fill"
                     required: True
                     on_text: 

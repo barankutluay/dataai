@@ -1,4 +1,14 @@
 #:import Clipboard kivy.core.clipboard.Clipboard
+<MDTextButton>:
+    theme_text_color: "Custom"
+    text_color: "black" if app.theme_cls.theme_style == "Light" else "white"
+
+<MDTextField>:
+    md_bg_color: app.theme_cls.primary_color
+    fill_color_normal: [1, 1, 1, 1] if app.theme_cls.theme_style == "Light" else [18/255, 18/255, 18/255, 1]
+    fill_color_focus: [1, 1, 1, 1] if app.theme_cls.theme_style == "Light" else [18/255, 18/255, 18/255, 1]
+    hint_text_color_normal: "gray"
+
 <OneLineAvatarIconListItem>:
     theme_text_color: "Custom"
     text_color: "black" if app.theme_cls.theme_style == "Light" else "white"

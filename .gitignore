@@ -159,7 +159,7 @@ sdk/
 
 builds/
 
-token.json
+settings.json
 
 icons.py
 

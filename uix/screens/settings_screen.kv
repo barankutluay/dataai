@@ -19,29 +19,70 @@
             text_color: "black" if app.theme_cls.theme_style == "Light" else "white"
         MDBoxLayout:
             orientation: "vertical"
-            size_hint: 0.9, 0.9
-            pos_hint: {"center_x": 0.5, "bottom": 1.0}
+            size_hint: 0.9, 0.5
+            pos_hint: {"center_x": 0.5, "center_y": 0.5}
 #            md_bg_color: app.theme_cls.primary_color
             MDLabel:
                 id: settings_email
                 text: "Email: "
+                bold: True
                 theme_text_color: "Custom"
                 text_color: "black" if app.theme_cls.theme_style == "Light" else "white"
             MDLabel:
                 id: settings_username
                 text: "Username: "
+                bold: True
                 theme_text_color: "Custom"
                 text_color: "black" if app.theme_cls.theme_style == "Light" else "white"
             MDRelativeLayout:
                 MDLabel:
-                    text: "Choose theme:"
+                    text: "Choose theme"
+                    bold: True
                     theme_text_color: "Custom"
                     text_color: "black" if app.theme_cls.theme_style == "Light" else "white"
                 MDDropDownItem:
                     id: dropdown_item
                     pos_hint: {"right": 1.0, "center_y": 0.5}
-                    text: "Light"
+                    text: app.store.get("theme")["theme"]
+                    bold: True
                     on_release: app.menu.open()
+            MDRelativeLayout:
+                MDLabel:
+                    text: "Verify email"
+                    bold: True
+                    theme_text_color: "Custom"
+                    text_color: "black" if app.theme_cls.theme_style == "Light" else "white"
+                MDIconButton:
+                    id: verify_email
+                    pos_hint: {"right": 1.0, "center_y": 0.5}
+                    icon: "check-circle"
+                    theme_text_color: "Custom"
+                    text_color: "black" if app.theme_cls.theme_style == "Light" else "white"
+            MDRelativeLayout:
+                MDLabel:
+                    text: "Delete Account"
+                    bold: True
+                    theme_text_color: "Custom"
+                    text_color: "black" if app.theme_cls.theme_style == "Light" else "white"
+                MDIconButton:
+                    id: delete_account
+                    pos_hint: {"right": 1.0, "center_y": 0.5}
+                    icon: "delete"
+                    theme_text_color: "Custom"
+                    text_color: "black" if app.theme_cls.theme_style == "Light" else "white"
+            MDRelativeLayout:
+                MDLabel:
+                    text: "Log Out"
+                    bold: True
+                    theme_text_color: "Custom"
+                    text_color: "black" if app.theme_cls.theme_style == "Light" else "white"
+                MDIconButton:
+                    id: log_out
+                    pos_hint: {"right": 1.0, "center_y": 0.5}
+                    icon: "logout"
+                    theme_text_color: "Custom"
+                    text_color: "black" if app.theme_cls.theme_style == "Light" else "white"
+                    on_release: app.log_out()
 
 
 SettingsScreen:
