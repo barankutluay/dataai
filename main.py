@@ -134,7 +134,11 @@ class MainApp(MDApp):
         ]
 
     def build(self):
-        self.theme_cls.theme_style = self.store.get("theme")["theme"]
+        if "theme" in self.store:
+            self.theme_cls.theme_style = self.store.get("theme")["theme"]
+        else:
+            self.theme_cls.theme_style = "Light"
+
         self.theme_cls.primary_palette = "Red"
         self.theme_cls.primary_hue = "800"
         self.theme_cls.material_style = "M3"
@@ -195,8 +199,8 @@ class MainApp(MDApp):
             self.settings_screen = Builder.load_file("uix/screens/settings_screen.kv")
             self.sm.add_widget(self.settings_screen)
             self.settings_screen.ids.settings_email.text += self.user["email"]
-            username = db.child("users").child(self.replace_str(self.user["email"], "to_db"))\
-                         .child("username").get().val()
+            username = db.child("users").child(self.replace_str(self.user["email"], "to_db")) \
+                .child("username").get().val()
             self.settings_screen.ids.settings_username.text += username
 
         self.menu = MDDropdownMenu(
@@ -319,7 +323,7 @@ class MainApp(MDApp):
                     )
                 self.get_chat_log()
                 self.logged_out = False
-                self.nav_drawer.ids.user_label.text = self.user["email"]
+                # self.nav_drawer.ids.user_label.text = self.user["email"]
             else:
                 raise Exception("Invalid email or password")
         except Exception as e:
