@@ -77,9 +77,12 @@ class ChatLayout(MDBoxLayout):
     chat_id = kvprops.NumericProperty()
 
 
-# TODO: Chat bubble tıklababilir bir obje olmalı, daha sonra yemek tarifi istenicek, elindeki malzemeler belirlenip,
+# Chat bubble tıklababilir bir obje olmalı, daha sonra yemek tarifi istenicek, elindeki malzemeler belirlenip,
 #  ona göre bir yemek tarifi verilebilecek, ya da isterse direkt olarak (10 tane tarif) verilebilecek, daha sonra,
 #  içinden seçilip onun tarifi yazdırılıcak. Bu uygulama base app olarak kalıcak, bu uygulamayı çoğaltacağız.
+
+# TODO: Kullanıcının önüne chat içerisinde iki tane buton çıkartılıcak, 1.si elindeki malzemeleri girmesi için,
+#  ikincisi direkt yemek tarifi almak için kullanılıcak.
 
 
 class MainApp(MDApp):
