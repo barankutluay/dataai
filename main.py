@@ -81,11 +81,11 @@ class ChatLayout(MDBoxLayout):
 #  ona göre bir yemek tarifi verilebilecek, ya da isterse direkt olarak (10 tane tarif) verilebilecek, daha sonra,
 #  içinden seçilip onun tarifi yazdırılıcak. Bu uygulama base app olarak kalıcak, bu uygulamayı çoğaltacağız.
 
-# TODO: Verify email ve delete account fonksiyonları kaldı
 
 class MainApp(MDApp):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
+        self.email_verified = None
         self.menu_items = None
         self.menu = None
         self.settings_screen = None
@@ -202,6 +202,13 @@ class MainApp(MDApp):
             username = db.child("users").child(self.replace_str(self.user["email"], "to_db")) \
                 .child("username").get().val()
             self.settings_screen.ids.settings_username.text += username
+        else:
+            self.settings_screen.ids.settings_email.text = "Email: "
+            self.settings_screen.ids.settings_username.text = "Username: "
+            self.settings_screen.ids.settings_email.text += self.user["email"]
+            username = db.child("users").child(self.replace_str(self.user["email"], "to_db")) \
+                .child("username").get().val()
+            self.settings_screen.ids.settings_username.text += username
 
         self.menu = MDDropdownMenu(
             caller=self.settings_screen.ids.dropdown_item,
@@ -302,30 +309,34 @@ class MainApp(MDApp):
         login_email = self.login_screen.ids.login_email.text
         login_password = self.login_screen.ids.login_password.text
 
-        db_user = db.child("users").child(self.replace_str(login_email, "to_db")).get()
-        db_email = db_user.val()["email"]
-        db_password = db_user.val()["password"]
-        db_username = db_user.val()["username"]
-
         try:
-            if login_email == db_email and login_password == db_password:
-                self.user = auth_firebase.sign_in_with_email_and_password(
-                    login_email, login_password
-                )
-                self.login_check = True
-                self.switch_screen("home")
-                if not auto_login:
-                    self.store.put("user", refresh_token=self.user["refreshToken"])
-                    self.dialog_open(
-                        "Logged In",
-                        f'Successfully logged in as "{db_username}".',
-                        "OK",
+            db_user = db.child("users").child(self.replace_str(login_email, "to_db")).get()
+            if db_user.val() is not None:
+                db_email = db_user.val()["email"]
+                db_password = db_user.val()["password"]
+                db_username = db_user.val()["username"]
+                self.email_verified = auth.get_user_by_email(login_email).email_verified
+                if (login_email == db_email and login_password == db_password) and self.email_verified:
+                    self.user = auth_firebase.sign_in_with_email_and_password(
+                        login_email, login_password
                     )
-                self.get_chat_log()
-                self.logged_out = False
-                # self.nav_drawer.ids.user_label.text = self.user["email"]
+                    self.login_check = True
+                    self.switch_screen("home")
+                    if not auto_login:
+                        self.store.put("user", refresh_token=self.user["refreshToken"])
+                        self.dialog_open(
+                            "Logged In",
+                            f'Successfully logged in as "{db_username}".',
+                            "OK",
+                        )
+                    self.get_chat_log()
+                    self.logged_out = False
+                    # self.nav_drawer.ids.user_label.text = self.user["email"]
+                else:
+                    if not self.email_verified:
+                        raise Exception("Your email is not verified yet.")
             else:
-                raise Exception("Invalid email or password")
+                raise Exception("Invalid email or password.")
         except Exception as e:
             self.dialog_open("Error", f"{e}", "Retry")
             self.clear_text(
@@ -356,7 +367,7 @@ class MainApp(MDApp):
                             )
                             return
 
-                auth_firebase.create_user_with_email_and_password(
+                user = auth_firebase.create_user_with_email_and_password(
                     signup_email, signup_password
                 )
                 db_username = self.replace_str(signup_email, "to_db")
@@ -367,8 +378,13 @@ class MainApp(MDApp):
                 db.child("users").child(db_username).child("password").set(
                     signup_password
                 )
-                self.dialog_open("Success", "Successfully created account.", "OK")
+                auth_firebase.send_email_verification(user["idToken"])
+                self.dialog_open("Success",
+                                 "Successfully created account. You need to verify your email to login.", "OK")
                 self.switch_screen("login")
+                self.clear_text(signup_screen.ids.signup_username,
+                                signup_screen.ids.signup_email,
+                                signup_screen.ids.signup_password)
             except Exception as e:
                 error_messages = {
                     auth.EmailAlreadyExistsError: "The user with the provided email already exists.",
@@ -379,10 +395,9 @@ class MainApp(MDApp):
                 self.clear_text(
                     signup_screen.ids.signup_username,
                     signup_screen.ids.signup_email,
-                    signup_screen.ids.signup_password,
-                )
+                    signup_screen.ids.signup_password)
 
-    def log_out(self):
+    def log_out(self, delete_acc=False):
         """
         Logs out from the app.
         :return: None
@@ -394,7 +409,10 @@ class MainApp(MDApp):
             self.nav_drawer.ids.nav_drawer.set_state("closed")
             self.switch_screen("login")
             self.clear_text(self.login_screen.ids.login_email, self.login_screen.ids.login_password)
-            self.dialog_open("Logged Out", "Successfully logged out.", "OK")
+
+            if not delete_acc:
+                self.dialog_open("Logged Out", "Successfully logged out.", "OK")
+
             self.read_more_button = None
             self.cb_box = None
             self.cb_label = None
@@ -411,6 +429,12 @@ class MainApp(MDApp):
             self.chat_layouts.append(self.chat_layout)
             self.chat_sessions = []
             self.logged_out = True
+
+            keys_to_remove = [key for key in self.nav_drawer.ids.keys() if key.startswith("item") and key != "item_0"]
+            for key in keys_to_remove:
+                item = self.nav_drawer.ids[f"{key}"]
+                self.nav_drawer.children[0].children[0].children[0].remove_widget(item)
+                self.nav_drawer.ids.pop(key)
 
     def create_dialog(self):
         """
@@ -461,16 +485,17 @@ class MainApp(MDApp):
         self.delete_confirmation = confirmation
         self.dialog.dismiss()
 
-    def check_delete_confirmation(self, obj):
+    def check_delete_confirmation(self, obj, delete_what="log"):
         """
         Checks deleting operation to confirm.
+        :param delete_what:
         :param obj:
         :return:
         """
         if self.delete_confirmation is not None:
             Clock.unschedule(self.check_delete_confirmation)
 
-            if self.delete_confirmation:
+            if self.delete_confirmation and delete_what == "log":
                 md_list = self.nav_drawer.ids.chat_list
                 list_item = obj.parent.parent
                 md_list.remove_widget(list_item)
@@ -486,6 +511,14 @@ class MainApp(MDApp):
                 chat_layout.children[0].children[0].clear_widgets()
                 self.add_new_chat()
                 self.switch_session(self.nav_drawer.ids[f"item_{self.chat_count}"])
+            elif self.delete_confirmation and delete_what == "account":
+                auth_firebase.delete_user_account(self.user["idToken"])
+                # databaseden sil
+                db.child("users").child(self.replace_str(self.user["email"], "to_db")).remove()
+                # logout at
+                self.log_out(delete_acc=True)
+                self.dialog_open("Success", "Successfully deleted your account.", "OK")
+
             else:
                 pass
 
@@ -767,21 +800,18 @@ class MainApp(MDApp):
                             answer_bubble.parent.remove_widget(answer_bubble)
                         chat_children.add_widget(answer_bubble)
 
-                    if not self.logged_out:
-                        md_list = self.nav_drawer.ids.chat_list
-                        list_item = OneLineAvatarIconListItem(
-                            text="New Chat",
-                            _txt_left_pad=dp(8),
-                            on_release=self.switch_session,
-                            fake_id=self.chat_count + 1,
-                            theme_text_color="Custom",
-                            text_color="black" if self.theme_cls.theme_style == "Light" else "white",
-                        )
-                        md_list.add_widget(list_item)
-                        self.chat_count += 1
-                        self.nav_drawer.ids[f"item_{self.chat_count}"] = list_item
-                    else:
-                        self.chat_count += 1
+                    md_list = self.nav_drawer.ids.chat_list
+                    list_item = OneLineAvatarIconListItem(
+                        text="New Chat",
+                        _txt_left_pad=dp(8),
+                        on_release=self.switch_session,
+                        fake_id=self.chat_count + 1,
+                        theme_text_color="Custom",
+                        text_color="black" if self.theme_cls.theme_style == "Light" else "white",
+                    )
+                    md_list.add_widget(list_item)
+                    self.chat_count += 1
+                    self.nav_drawer.ids[f"item_{self.chat_count}"] = list_item
                 else:
                     chat_children = chat_layout.children[0].children[0]
                     item = self.nav_drawer.ids[f"item_{self.chat_count}"]
@@ -830,21 +860,18 @@ class MainApp(MDApp):
 
                     self.chat_layouts.append(chat_layout)
 
-                    if not self.logged_out:
-                        md_list = self.nav_drawer.ids.chat_list
-                        list_item = OneLineAvatarIconListItem(
-                            text="New Chat",
-                            _txt_left_pad=dp(8),
-                            on_release=self.switch_session,
-                            fake_id=self.chat_count + 1,
-                            theme_text_color="Custom",
-                            text_color="black" if self.theme_cls.theme_style == "Light" else "white",
-                        )
-                        md_list.add_widget(list_item)
-                        self.chat_count += 1
-                        self.nav_drawer.ids[f"item_{self.chat_count}"] = list_item
-                    else:
-                        self.chat_count += 1
+                    md_list = self.nav_drawer.ids.chat_list
+                    list_item = OneLineAvatarIconListItem(
+                        text="New Chat",
+                        _txt_left_pad=dp(8),
+                        on_release=self.switch_session,
+                        fake_id=self.chat_count + 1,
+                        theme_text_color="Custom",
+                        text_color="black" if self.theme_cls.theme_style == "Light" else "white",
+                    )
+                    md_list.add_widget(list_item)
+                    self.chat_count += 1
+                    self.nav_drawer.ids[f"item_{self.chat_count}"] = list_item
 
             chat_layout = ChatLayout(chat_id=chat_id)
             self.chat_layouts.append(chat_layout)
@@ -1021,6 +1048,16 @@ class MainApp(MDApp):
         if type_of == "from_db":
             replaced_str = string.replace("-dot-", ".").replace("-ask-", "?")
             return replaced_str
+
+    def delete_account(self, obj):
+
+        self.delete_dialog_open("Warning",
+                                "Do you really want to delete this account? This action is irreversible.",
+                                "OK", "Cancel")
+
+        Clock.schedule_interval(lambda dt: self.check_delete_confirmation(obj, delete_what="account"), 0.1)
+
+        self.delete_confirmation = None
 
 
 if __name__ == "__main__":

@@ -48,18 +48,6 @@
                     on_release: app.menu.open()
             MDRelativeLayout:
                 MDLabel:
-                    text: "Verify email"
-                    bold: True
-                    theme_text_color: "Custom"
-                    text_color: "black" if app.theme_cls.theme_style == "Light" else "white"
-                MDIconButton:
-                    id: verify_email
-                    pos_hint: {"right": 1.0, "center_y": 0.5}
-                    icon: "check-circle"
-                    theme_text_color: "Custom"
-                    text_color: "black" if app.theme_cls.theme_style == "Light" else "white"
-            MDRelativeLayout:
-                MDLabel:
                     text: "Delete Account"
                     bold: True
                     theme_text_color: "Custom"
@@ -70,6 +58,7 @@
                     icon: "delete"
                     theme_text_color: "Custom"
                     text_color: "black" if app.theme_cls.theme_style == "Light" else "white"
+                    on_release: app.delete_account(self)
             MDRelativeLayout:
                 MDLabel:
                     text: "Log Out"
