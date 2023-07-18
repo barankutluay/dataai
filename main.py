@@ -8,6 +8,7 @@ import kivy.properties as kvprops
 import openai
 import pyrebase
 from firebase_admin import auth, credentials
+from kivy.animation import Animation
 from kivy.clock import Clock
 from kivy.lang import Builder
 from kivy.metrics import dp
@@ -15,9 +16,11 @@ from kivy.storage.jsonstore import JsonStore
 from kivymd.app import MDApp
 from kivymd.uix.boxlayout import MDBoxLayout
 from kivymd.uix.button import MDFlatButton, MDRaisedButton
+from kivymd.uix.chip import MDChip
 from kivymd.uix.dialog import MDDialog
 from kivymd.uix.list import IconRightWidget, OneLineAvatarIconListItem
 from kivymd.uix.menu import MDDropdownMenu
+from kivymd.uix.relativelayout import MDRelativeLayout
 from kivymd.uix.screenmanager import MDScreenManager
 
 dotenv.load_dotenv()
@@ -77,9 +80,49 @@ class ChatLayout(MDBoxLayout):
     chat_id = kvprops.NumericProperty()
 
 
-# Chat bubble tıklababilir bir obje olmalı, daha sonra yemek tarifi istenicek, elindeki malzemeler belirlenip,
-#  ona göre bir yemek tarifi verilebilecek, ya da isterse direkt olarak (10 tane tarif) verilebilecek, daha sonra,
-#  içinden seçilip onun tarifi yazdırılıcak. Bu uygulama base app olarak kalıcak, bu uygulamayı çoğaltacağız.
+# noinspection PyUnusedLocal
+class MyChip(MDChip):
+    icon_check_color = (1, 1, 1, 1)
+    _no_ripple_effect = True
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.bind(active=self.set_chip_bg_color)
+        self.bind(active=self.set_chip_text_color)
+        self.text_color = (0, 0, 0, 0.8) if self.theme_cls.theme_style == "Light" else (1, 1, 1, 0.8)
+
+    def set_chip_bg_color(self, instance_chip, active_value: int):
+        self.md_bg_color = (
+            self.theme_cls.primary_color
+            if active_value
+            else (
+                (0, 0, 0, 0.1)
+                if self.theme_cls.theme_style == "Light"
+                else (
+                    (1, 1, 1, 0.1)
+                )
+            )
+        )
+
+    def set_chip_text_color(self, instance_chip, active_value: int):
+        Animation(
+            color=(1, 1, 1, 1) if active_value else (
+                (0, 0, 0, 0.8)
+                if self.theme_cls.theme_style == "Light"
+                else (
+                    (1, 1, 1, 0.8)
+                )
+            ), d=0.2
+        ).start(self.ids.label)
+
+
+class ChipLayout(MDBoxLayout):
+    pass
+
+
+class ActionList(MDRelativeLayout):
+    pass
+
 
 # TODO: Kullanıcının önüne chat içerisinde iki tane buton çıkartılıcak, 1.si elindeki malzemeleri girmesi için,
 #  ikincisi direkt yemek tarifi almak için kullanılıcak.
@@ -516,12 +559,9 @@ class MainApp(MDApp):
                 self.switch_session(self.nav_drawer.ids[f"item_{self.chat_count}"])
             elif self.delete_confirmation and delete_what == "account":
                 auth_firebase.delete_user_account(self.user["idToken"])
-                # databaseden sil
                 db.child("users").child(self.replace_str(self.user["email"], "to_db")).remove()
-                # logout at
                 self.log_out(delete_acc=True)
                 self.dialog_open("Success", "Successfully deleted your account.", "OK")
-
             else:
                 pass
 
@@ -704,7 +744,11 @@ class MainApp(MDApp):
             chat_id = 0
             for chat in chats.get().each():
                 chat_layout = ChatLayout(chat_id=chat_id)
+                chat_children = chat_layout.children[0].children[0]
                 chat_id += 1
+
+                action_layout = chat_layout.ids.action_layout
+                chat_children.remove_widget(action_layout)
 
                 prompt_bubbles = []
                 answer_bubbles = []
@@ -758,7 +802,8 @@ class MainApp(MDApp):
                 if self.chat_count == 0:
                     chat_layout = self.chat_layouts[0]
                     chat_children = chat_layout.children[0].children[0]
-
+                    action_layout = chat_layout.ids.action_layout
+                    chat_children.remove_widget(action_layout)
                     item = self.nav_drawer.ids[f"item_{self.chat_count}"]
                     item.text = title
                     right_widget = IconRightWidget(
@@ -892,17 +937,22 @@ class MainApp(MDApp):
 
         self.delete_dialog_open("Warning", "Do you really want to delete this chat?", "OK", "Cancel")
 
-        Clock.schedule_interval(lambda dt: self.check_delete_confirmation(obj), 0.1)
+        Clock.schedule_interval(lambda dt: self.check_delete_confirmation(obj, delete_what="log"), 0.1)
 
         self.delete_confirmation = None
 
-    def send_message(self):
+    def send_message(self, button_text="", action_button=False):
         """
         Sends message.
-        :return: None
+        :param button_text:
+        :param action_button:
+        :return:
         """
         text_field = self.send_layout.ids.text_field
-        message_text = text_field.text.strip()
+        if not action_button:
+            message_text = text_field.text.strip()
+        else:
+            message_text = button_text.strip()
 
         if message_text != "":
             cb_parent = ChatBubble(pos_hint={"right": 1}, halign="right", btype="m")
@@ -1061,6 +1111,58 @@ class MainApp(MDApp):
         Clock.schedule_interval(lambda dt: self.check_delete_confirmation(obj, delete_what="account"), 0.1)
 
         self.delete_confirmation = None
+
+    def first_action_button(self, obj):
+        message_text = "Could you give me a list of 5 recipe with given ingredients? " + obj.text + \
+                       " Give me the name of recipies without details, then I'll choose."
+        action_layout = self.chat_layout.ids.action_layout
+        chat_children = self.chat_layout.children[0].children[0]
+        chat_children.remove_widget(action_layout)
+
+        self.send_message(button_text=message_text, action_button=True)
+        layout = ChipLayout()
+        chat_children.add_widget(layout)
+
+    def first_action_ok_button(self, obj):
+        chip_layout = obj.parent.parent
+        chip_layout_grid = chip_layout.ids.chip_layout_grid
+        chat_children = self.chat_layout.children[0].children[0]
+        active_list = [item.text for item in chip_layout_grid.children if item.active]
+        message_text = "I have " + ", ".join(active_list)
+        message_text += " on hand."
+
+        chat_children.remove_widget(chip_layout)
+        self.send_message(button_text=message_text, action_button=True)
+
+        action_list = ActionList()
+        chat_children.add_widget(action_list)
+
+    def first_action_select(self, obj):
+        button_number = int(obj.icon.split("-")[1])
+        action_list = obj.parent
+        message_text: str
+        chat_children = self.chat_layout.children[0].children[0]
+
+        if button_number == 1:
+            message_text = f"Give me the first recipe."
+        elif button_number == 2:
+            message_text = f"Give me the second recipe."
+        elif button_number == 3:
+            message_text = f"Give me the third recipe."
+        elif button_number == 4:
+            message_text = f"Give me the fourth recipe."
+        else:
+            message_text = f"Give me the fifth recipe."
+
+        chat_children.remove_widget(action_list)
+        self.send_message(button_text=message_text, action_button=True)
+
+    def second_action_button(self):
+        message_text = "Could you give me the recipe I asked for?"
+        action_layout = self.chat_layout.ids.action_layout
+        chat_children = self.chat_layout.children[0].children[0]
+        chat_children.remove_widget(action_layout)
+        self.send_message(button_text=message_text, action_button=True)
 
 
 if __name__ == "__main__":

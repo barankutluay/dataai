@@ -1,15 +1,10 @@
 <LoginScreen@MDScreen>:
     name: "login"
-
-
     MDBoxLayout:
         orientation: "vertical"
         size_hint: 1, .8
         pos_hint: {"center_x": 0.5, "center_y": 0.5}
-        # md_bg_color: app.theme_cls.accent_color
-
         MDRelativeLayout:
-            #md_bg_color: app.theme_cls.secondary_text_color
             MDLabel:
                 text:"Login"
                 font_style:"H3"
@@ -17,7 +12,6 @@
                 pos_hint: {"center_y": 1}
                 theme_text_color: "Custom"
                 text_color: "black" if app.theme_cls.theme_style == "Light" else "white"
-
             MDTextField:
                 id:login_email
                 pos_hint: {"center_x":0.5,"center_y":0.70}
@@ -35,8 +29,6 @@
                 mode: "fill"
                 on_text:
                     app.input_limit(self, 50, "e")
-
-
             Password:
                 size_hint_x: 0.8
                 pos_hint: {"center_x":0.5,"center_y":0.5}
@@ -64,8 +56,6 @@
                     on_release:
                         self.icon = "eye" if self.icon == "eye-off" else "eye-off"
                         login_password.password = False if login_password.password is True else True
-
-
             MDFillRoundFlatIconButton:
                 id: login_button
                 icon: "account-arrow-right"
@@ -75,8 +65,6 @@
                 size_hint_y: 0.1
                 pos_hint: {"center_x": 0.5,"center_y": 0.20}
                 on_release: app.login()
-
-
             MDTextButton:
                 id: signup_button
                 text: "Don't have an account yet? Click here to signup"

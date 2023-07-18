@@ -1,7 +1,37 @@
-<ChatLayout@MDBoxLayout>:
+#:import ScrollEffect  kivy.effects.scroll.ScrollEffect
+
+
+<ActionLayout@MDBoxLayout>:
+    orientation: "vertical"
+    size_hint_x: 1
+    adaptive_height: True
+    spacing: dp(15)
+    MDLabel:
+        text: "Choose your action:"
+        halign: "center"
+        theme_text_color: "Custom"
+        text_color: "black" if app.theme_cls.theme_style == "Light" else "white"
+    MDRoundFlatButton:
+        elevation: 0
+        size_hint_x: 1
+        text: "I will write down what I have on hand."
+        md_bg_color: app.theme_cls.primary_color
+        theme_text_color: "Custom"
+        text_color: "white"
+        on_release: app.first_action_button(self)
+    MDRoundFlatButton:
+        elevation: 0
+        size_hint_x: 1
+        text: "I will get the recipe directly."
+        md_bg_color: app.theme_cls.primary_color
+        theme_text_color: "Custom"
+        text_color: "white"
+        on_release: app.second_action_button()
+
+
+<ChatLayout>:
     size_hint: 1, 1
     id: chat_layout
-    cols: 1
     pos_hint: {'center_x': 0.5,'center_y': 0.5}
     md_bg_color: [1, 1, 1, 1] if app.theme_cls.theme_style == "Light" else [18/255, 18/255, 18/255, 1]
     chat_id: 0
@@ -9,11 +39,14 @@
         do_scroll_x: False
         do_scroll_y: True
         scroll_y: 1
+        effect_cls: ScrollEffect
         MDBoxLayout:
             orientation: "vertical"
             adaptive_height: True
             spacing: dp(20)
             padding: dp(10), dp(90), dp(10), dp(100)
+            ActionLayout:
+                id: action_layout
 
 
 ChatLayout:

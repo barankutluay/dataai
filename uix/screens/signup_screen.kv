@@ -1,15 +1,10 @@
 <SignUpScreen@MDScreen>:
     name: "signup"
-
-
     MDBoxLayout:
         orientation: "vertical"
         size_hint: 1, .8
         pos_hint: {"center_x": 0.5, "center_y": 0.5}
-        # md_bg_color: app.theme_cls.accent_color
-
         MDRelativeLayout:
-            #md_bg_color: app.theme_cls.secondary_text_color
             MDLabel:
                 text: "Signup"
                 font_style: "H3"
@@ -17,8 +12,6 @@
                 pos_hint: {"center_y": 1}
                 theme_text_color: "Custom"
                 text_color: "black" if app.theme_cls.theme_style == "Light" else "white"
-
-
             MDTextField:
                 id: signup_username
                 pos_hint: {"center_x":0.5,"center_y":0.80}
@@ -36,8 +29,6 @@
                 mode: "fill"
                 on_text:
                     app.input_limit(self, 30, "u")
-
-
             MDTextField:
                 id: signup_email
                 pos_hint: {"center_x":0.5,"center_y":0.60}
@@ -56,8 +47,6 @@
                 mode: "fill"
                 on_text:
                     app.input_limit(self, 50, "e")
-
-
             Password:
                 size_hint_x: 0.8
                 pos_hint: {"center_x":0.5,"center_y":0.40}
@@ -85,8 +74,6 @@
                     on_release:
                         self.icon = "eye" if self.icon == "eye-off" else "eye-off"
                         signup_password.password = False if signup_password.password is True else True
-
-
             MDFillRoundFlatIconButton:
                 id: signup_button
                 icon: "account-plus"
@@ -96,7 +83,6 @@
                 size_hint_y: 0.1
                 pos_hint: {"center_x": 0.5,"center_y": 0.20}
                 on_release: app.sign_up()
-
             MDTextButton:
                 id: login_button
                 text: "Already have an account? Click here to login"

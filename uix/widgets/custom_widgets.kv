@@ -1,7 +1,156 @@
 #:import Clipboard kivy.core.clipboard.Clipboard
+#:import ScrollEffect  kivy.effects.scroll.ScrollEffect
+
+
+<ActionList>:
+    size_hint_x: 1
+    size_hint_y: None
+    height: "35dp"
+    spacing: "10dp"
+    MDIconButton:
+        icon: "numeric-1-circle"
+        icon_size: "16sp"
+        pos_hint: {"left": 1.0}
+        md_bg_color: app.theme_cls.primary_color
+        theme_text_color: "Custom"
+        text_color: "white"
+        on_release: app.first_action_select(self)
+    MDIconButton:
+        icon: "numeric-2-circle"
+        icon_size: "16sp"
+        pos_hint: {"center_x": 0.275}
+        md_bg_color: app.theme_cls.primary_color
+        theme_text_color: "Custom"
+        text_color: "white"
+        on_release: app.first_action_select(self)
+    MDIconButton:
+        icon: "numeric-3-circle"
+        icon_size: "16sp"
+        pos_hint: {"center_x": 0.5}
+        md_bg_color: app.theme_cls.primary_color
+        theme_text_color: "Custom"
+        text_color: "white"
+        on_release: app.first_action_select(self)
+    MDIconButton:
+        icon: "numeric-4-circle"
+        icon_size: "16sp"
+        pos_hint: {"center_x": 0.725}
+        md_bg_color: app.theme_cls.primary_color
+        theme_text_color: "Custom"
+        text_color: "white"
+        on_release: app.first_action_select(self)
+    MDIconButton:
+        icon: "numeric-5-circle"
+        icon_size: "16sp"
+        pos_hint: {"right": 1.0}
+        md_bg_color: app.theme_cls.primary_color
+        theme_text_color: "Custom"
+        text_color: "white"
+        on_release: app.first_action_select(self)
+
+
+<MyChip>:
+    text_color: [1, 1, 1, 1] if self.active else [0, 0, 0, 0.8] if app.theme_cls.theme_style == "Light" else [1, 1, 1, 0.8]
+    md_bg_color: app.theme_cls.primary_color if self.active else [0, 0, 0, 0.1] if app.theme_cls.theme_style == "Light" else [1, 1, 1, 0.1]
+
+
+<ChipLayout>:
+    id: chip_layout
+    size_hint_x: 1
+    size_hint_y: None
+    height: "180dp"
+    orientation: "vertical"
+    MDBoxLayout:
+        orientation: "vertical"
+        spacing: "20dp"
+        MDScrollView:
+            do_scroll_x: True
+            do_scroll_y: False
+            scroll_x: 0
+            effect_cls: ScrollEffect
+            GridLayout:
+                id: chip_layout_grid
+                cols: 4
+                size_hint: None, None
+                width: self.minimum_width
+                height: self.minimum_height
+                spacing: "10dp"
+
+                MyChip:
+                    text: "Tomatoes"
+                    size_hint: None, None
+                    size: self.width, dp(32)
+
+                MyChip:
+                    text: "Potatoes"
+                    size_hint: None, None
+                    size: self.width, dp(32)
+
+                MyChip:
+                    text: "Eggs"
+                    size_hint: None, None
+                    size: self.width, dp(32)
+
+                MyChip:
+                    text: "Onions"
+                    size_hint: None, None
+                    size: self.width, dp(32)
+
+                MyChip:
+                    text: "Garlic"
+                    size_hint: None, None
+                    size: self.width, dp(32)
+
+                MyChip:
+                    text: "Peppers"
+                    size_hint: None, None
+                    size: self.width, dp(32)
+
+                MyChip:
+                    text: "Flour"
+                    size_hint: None, None
+                    size: self.width, dp(32)
+
+                MyChip:
+                    text: "Macaroni"
+                    size_hint: None, None
+                    size: self.width, dp(32)
+
+                MyChip:
+                    text: "Meat"
+                    size_hint: None, None
+                    size: self.width, dp(32)
+
+                MyChip:
+                    text: "Fish"
+                    size_hint: None, None
+                    size: self.width, dp(32)
+
+                MyChip:
+                    text: "Cheese"
+                    size_hint: None, None
+                    size: self.width, dp(32)
+
+                MyChip:
+                    text: "Cucumber"
+                    size_hint: None, None
+                    size: self.width, dp(32)
+
+        MDRoundFlatButton:
+            elevation: 0
+            size_hint_x: 0.25
+            text: "OK"
+            pos_hint: {"center_x": 0.5}
+            md_bg_color: app.theme_cls.primary_color
+            theme_text_color: "Custom"
+            text_color: "white"
+            on_release: app.first_action_ok_button(self)
+
+
 <MDTextButton>:
     theme_text_color: "Custom"
     text_color: "black" if app.theme_cls.theme_style == "Light" else "white"
+
 
 <MDTextField>:
     md_bg_color: app.theme_cls.primary_color
@@ -9,14 +158,17 @@
     fill_color_focus: [1, 1, 1, 1] if app.theme_cls.theme_style == "Light" else [18/255, 18/255, 18/255, 1]
     hint_text_color_normal: "gray"
 
+
 <OneLineAvatarIconListItem>:
     theme_text_color: "Custom"
     text_color: "black" if app.theme_cls.theme_style == "Light" else "white"
+    _no_ripple_effect: True
 
 
 <IconRightWidget>:
     theme_text_color: "Custom"
     text_color: "black" if app.theme_cls.theme_style == "Light" else "white"
+    _no_ripple_effect: True
 
 
 <MDFlatButton>:
