@@ -1,6 +1,7 @@
 import asyncio
 import logging
 import os
+import re
 
 import dotenv
 import firebase_admin
@@ -82,7 +83,6 @@ class ChatLayout(MDBoxLayout):
 
 # noinspection PyUnusedLocal
 class MyChip(MDChip):
-    icon_check_color = (1, 1, 1, 1)
     _no_ripple_effect = True
 
     def __init__(self, **kwargs):
@@ -122,10 +122,6 @@ class ChipLayout(MDBoxLayout):
 
 class ActionList(MDRelativeLayout):
     pass
-
-
-# TODO: Kullanıcının önüne chat içerisinde iki tane buton çıkartılıcak, 1.si elindeki malzemeleri girmesi için,
-#  ikincisi direkt yemek tarifi almak için kullanılıcak.
 
 
 class MainApp(MDApp):
@@ -683,27 +679,27 @@ class MainApp(MDApp):
             e = str(e).removeprefix("[").removesuffix("]").replace("'", "")
             self.dialog_open("Error", e, "Retry")
 
-    def generate_title(self, new_question: str, response: str):
-        """
-        Generates title with given prompt and response. It generates another completion for title based on first \
-        interaction between user and AI.
-        :param new_question:
-        :param response:
-        :return: str
-        """
-        title_str = f"""
-                        ---BEGIN CONVERSATION---
-                        User: {new_question}
-                        AI: {response}
-                        ---END CONVERSATION---
-                        Summarize the conversation in 5 words or fewer in user's language:
-                    """
-        title_task = asyncio.ensure_future(self.get_response(INSTRUCTIONS, self.prev_q_a, title_str))
-        title = asyncio.get_event_loop().run_until_complete(asyncio.gather(title_task))[-1]
-        item = self.nav_drawer.ids[f"item_{self.chat_count}"]
-        item.text = title
-        item.add_widget(IconRightWidget(icon="delete", on_release=self.delete_chat_log))
-        return title
+    # def generate_title(self, new_question: str, response: str):
+    #     """
+    #     Generates title with given prompt and response. It generates another completion for title based on first \
+    #     interaction between user and AI.
+    #     param new_question:
+    #     :param response:
+    #     :return: str
+    #     """
+    #     title_str = f"""
+    #                     ---BEGIN CONVERSATION---
+    #                     User: {new_question}
+    #                     AI: {response}
+    #                     ---END CONVERSATION---
+    #                     Summarize the conversation in 5 words or fewer in user's language:
+    #                 """
+    #     title_task = asyncio.ensure_future(self.get_response(INSTRUCTIONS, self.prev_q_a, title_str))
+    #     title = asyncio.get_event_loop().run_until_complete(asyncio.gather(title_task))[-1]
+    #     item = self.nav_drawer.ids[f"item_{self.chat_count}"]
+    #     item.text = title
+    #     item.add_widget(IconRightWidget(icon="delete", on_release=self.delete_chat_log))
+    #     return title
 
     def save_chat_log(self, title: str):
         """
@@ -941,9 +937,10 @@ class MainApp(MDApp):
 
         self.delete_confirmation = None
 
-    def send_message(self, button_text="", action_button=False):
+    def send_message(self, button_text="", action_button=False, second_action=True):
         """
         Sends message.
+        :param second_action:
         :param button_text:
         :param action_button:
         :return:
@@ -967,12 +964,30 @@ class MainApp(MDApp):
             response_task = asyncio.ensure_future(self.get_response(INSTRUCTIONS, self.prev_q_a, message_text))
             self.response = asyncio.get_event_loop().run_until_complete(asyncio.gather(response_task))[-1]
 
-            if len(self.prev_q_a) == 0:
-                self.title = self.generate_title(message_text, self.response)
+            if len(self.prev_q_a) == 2:
+                # self.title = self.generate_title(message_text, self.response)
+                match = re.search(r'(?<=recipe for )(.*)(?=:)', self.response)
+                if match:
+                    dish_name = match.group(1).strip()
+                    self.title = dish_name
+                item = self.nav_drawer.ids[f"item_{self.chat_count}"]
+                item.text = self.title
+                item.add_widget(IconRightWidget(icon="delete", on_release=self.delete_chat_log))
+            elif len(self.prev_q_a) == 1 and second_action:
+                match = re.search(r'(?<=recipe for )(.*)(?=:)', self.response)
+                if match:
+                    dish_name = match.group(1).strip()
+                    self.title = dish_name
+                item = self.nav_drawer.ids[f"item_{self.chat_count}"]
+                item.text = self.title
+                item.add_widget(IconRightWidget(icon="delete", on_release=self.delete_chat_log))
 
             self.completion(message_text)
             self.show_response()
-            self.save_chat_log(self.title)
+            if len(self.prev_q_a) > 2:
+                self.save_chat_log(self.title)
+            elif len(self.prev_q_a) > 1 and second_action:
+                self.save_chat_log(self.title)
         else:
             self.dialog_open("Blank Prompt", "Input a valid prompt.", "Retry")
             return
@@ -1119,7 +1134,7 @@ class MainApp(MDApp):
         chat_children = self.chat_layout.children[0].children[0]
         chat_children.remove_widget(action_layout)
 
-        self.send_message(button_text=message_text, action_button=True)
+        self.send_message(button_text=message_text, action_button=True, second_action=False)
         layout = ChipLayout()
         chat_children.add_widget(layout)
 
@@ -1132,7 +1147,7 @@ class MainApp(MDApp):
         message_text += " on hand."
 
         chat_children.remove_widget(chip_layout)
-        self.send_message(button_text=message_text, action_button=True)
+        self.send_message(button_text=message_text, action_button=True, second_action=False)
 
         action_list = ActionList()
         chat_children.add_widget(action_list)
@@ -1155,14 +1170,14 @@ class MainApp(MDApp):
             message_text = f"Give me the fifth recipe."
 
         chat_children.remove_widget(action_list)
-        self.send_message(button_text=message_text, action_button=True)
+        self.send_message(button_text=message_text, action_button=True, second_action=False)
 
     def second_action_button(self):
-        message_text = "Could you give me the recipe I asked for?"
+        message_text = "If I asked you to give me a recipe, would you give it?"
         action_layout = self.chat_layout.ids.action_layout
         chat_children = self.chat_layout.children[0].children[0]
         chat_children.remove_widget(action_layout)
-        self.send_message(button_text=message_text, action_button=True)
+        self.send_message(button_text=message_text, action_button=True, second_action=True)
 
 
 if __name__ == "__main__":
